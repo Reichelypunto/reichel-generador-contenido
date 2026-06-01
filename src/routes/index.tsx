@@ -99,8 +99,13 @@ function LoginPage() {
           </Link>
         </div>
 
-        <footer className="mt-16 flex flex-col items-center gap-3 opacity-80">
-          <img src={firmaAsset.url} alt="Reichely punto 2.0" className="h-10 object-contain" />
+        <footer className="mt-16 flex flex-col items-center gap-3">
+          <img
+            src={firmaAsset.url}
+            alt="Reichely punto 2.0"
+            className="h-12 object-contain"
+            style={{ mixBlendMode: "multiply" }}
+          />
         </footer>
       </div>
     </main>
