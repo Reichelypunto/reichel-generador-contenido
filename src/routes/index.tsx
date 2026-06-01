@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
-import logoAsset from "../assets/vida-emprendedora-logo.png.asset.json";
+import perfilAsset from "../assets/reichely-perfil.png.asset.json";
 import firmaAsset from "../assets/reichely-firma.png.asset.json";
 
 export const Route = createFileRoute("/")({
@@ -29,9 +29,9 @@ function LoginPage() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-10">
           <img
-            src={logoAsset.url}
-            alt="Vida Emprendedora"
-            className="w-28 h-28 object-contain mb-6"
+            src={perfilAsset.url}
+            alt="Reichely"
+            className="w-32 h-32 rounded-full object-cover mb-6 ring-4 ring-primary/20 shadow-[var(--shadow-soft)]"
           />
           <h1 className="text-4xl serif text-foreground leading-tight">
             Tu espacio privado<br />de creación
@@ -99,8 +99,13 @@ function LoginPage() {
           </Link>
         </div>
 
-        <footer className="mt-16 flex flex-col items-center gap-3 opacity-80">
-          <img src={firmaAsset.url} alt="Reichely punto 2.0" className="h-10 object-contain" />
+        <footer className="mt-16 flex flex-col items-center gap-3">
+          <img
+            src={firmaAsset.url}
+            alt="Reichely punto 2.0"
+            className="h-12 object-contain"
+            style={{ mixBlendMode: "multiply" }}
+          />
         </footer>
       </div>
     </main>
