@@ -29,9 +29,9 @@ function LoginPage() {
       <div className="w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-10">
           <img
-            src={logoAsset.url}
-            alt="Vida Emprendedora"
-            className="w-28 h-28 object-contain mb-6"
+            src={perfilAsset.url}
+            alt="Reichely"
+            className="w-32 h-32 rounded-full object-cover mb-6 ring-4 ring-primary/20 shadow-[var(--shadow-soft)]"
           />
           <h1 className="text-4xl serif text-foreground leading-tight">
             Tu espacio privado<br />de creación
