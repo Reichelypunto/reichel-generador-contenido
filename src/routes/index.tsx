@@ -25,19 +25,22 @@ function LoginPage() {
   };
 
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center px-6 py-12 bg-background">
-      <div className="w-full max-w-md">
+    <main className="relative min-h-screen flex flex-col items-center justify-center px-6 py-12 bg-background overflow-hidden">
+      <FloatingIcons />
+      <div className="relative z-10 w-full max-w-md">
         <div className="flex flex-col items-center text-center mb-10">
-          <img
-            src={perfilAsset.url}
-            alt="Reichely"
-            className="w-32 h-32 rounded-full object-cover mb-6 ring-4 ring-primary/20 shadow-[var(--shadow-soft)]"
-          />
+          <div className="w-32 h-32 rounded-full overflow-hidden mb-6 ring-4 ring-primary/20 shadow-[var(--shadow-soft)] bg-card">
+            <img
+              src={perfilAsset.url}
+              alt="Reichely"
+              className="w-full h-full object-cover scale-[1.4] object-[50%_28%]"
+            />
+          </div>
           <h1 className="text-4xl serif text-foreground leading-tight">
-            Tu espacio privado<br />de creación
+            Tu app para crear<br />contenido sin complicaciones
           </h1>
           <p className="mt-4 text-sm text-muted-foreground font-light max-w-xs">
-            Un rincón íntimo donde tus palabras se vuelven contenido con alma.
+            Entra con tu correo de alumna y empieza a generar.
           </p>
         </div>
 
