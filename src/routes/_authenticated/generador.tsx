@@ -119,19 +119,21 @@ export default function GeneradorPage() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/60 bg-card/60 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-3 min-w-0">
-            <img src={logoAsset.url} alt="" className="w-9 h-9 object-contain shrink-0" />
-            <span className="text-sm tracking-[0.15em] uppercase text-foreground/80 truncate">Vida Emprendedora</span>
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <img src={logoAsset.url} alt="" className="w-8 h-8 object-contain shrink-0 mix-blend-multiply" />
+            <span className="text-[11px] sm:text-sm tracking-[0.15em] uppercase text-foreground/80 truncate">Vida Emprendedora</span>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <button
               onClick={handleLogout}
-              className="text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition"
+              className="text-[11px] sm:text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition"
             >
               Salir
             </button>
-            <img src={perfilAsset.url} alt="Reichely" className="w-11 h-11 rounded-full object-cover object-[50%_28%] scale-[1.22] ring-2 ring-primary/30" />
+            <div className="w-10 h-10 rounded-full overflow-hidden ring-2 ring-primary/30 shrink-0">
+              <img src={perfilAsset.url} alt="Reichely" className="w-full h-full object-cover object-[50%_28%] scale-[1.22]" />
+            </div>
           </div>
         </div>
       </header>
