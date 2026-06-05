@@ -114,3 +114,65 @@ function LoginPage() {
     </main>
   );
 }
+
+type FloatItem = { icon: string; left: string; delay: string; duration: string; size: string; opacity: number };
+
+const ITEMS: FloatItem[] = [
+  { icon: "instagram", left: "8%",  delay: "0s",   duration: "18s", size: "28px", opacity: 0.18 },
+  { icon: "heart",     left: "22%", delay: "3s",   duration: "22s", size: "20px", opacity: 0.22 },
+  { icon: "phone",     left: "38%", delay: "6s",   duration: "26s", size: "32px", opacity: 0.14 },
+  { icon: "heart",     left: "55%", delay: "1.5s", duration: "20s", size: "16px", opacity: 0.25 },
+  { icon: "instagram", left: "72%", delay: "8s",   duration: "24s", size: "24px", opacity: 0.16 },
+  { icon: "sparkle",   left: "85%", delay: "4s",   duration: "19s", size: "18px", opacity: 0.28 },
+  { icon: "heart",     left: "92%", delay: "10s",  duration: "23s", size: "22px", opacity: 0.18 },
+  { icon: "sparkle",   left: "15%", delay: "12s",  duration: "21s", size: "14px", opacity: 0.22 },
+  { icon: "phone",     left: "65%", delay: "14s",  duration: "27s", size: "26px", opacity: 0.13 },
+];
+
+function FloatingIcons() {
+  return (
+    <div className="pointer-events-none absolute inset-0 z-0 overflow-hidden" aria-hidden="true">
+      {ITEMS.map((it, i) => (
+        <span
+          key={i}
+          className="absolute block text-primary"
+          style={{
+            left: it.left,
+            bottom: "-40px",
+            width: it.size,
+            height: it.size,
+            opacity: it.opacity,
+            animation: `floatUp ${it.duration} linear ${it.delay} infinite`,
+          }}
+        >
+          <IconGlyph name={it.icon} />
+        </span>
+      ))}
+      <style>{`
+        @keyframes floatUp {
+          0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+          10%  { opacity: 1; }
+          90%  { opacity: 1; }
+          100% { transform: translateY(-110vh) rotate(20deg); opacity: 0; }
+        }
+      `}</style>
+    </div>
+  );
+}
+
+function IconGlyph({ name }: { name: string }) {
+  const common = { fill: "none", stroke: "currentColor", strokeWidth: 1.5, strokeLinecap: "round" as const, strokeLinejoin: "round" as const, viewBox: "0 0 24 24" };
+  if (name === "instagram") return (
+    <svg {...common}><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="0.8" fill="currentColor"/></svg>
+  );
+  if (name === "heart") return (
+    <svg {...common} fill="currentColor" stroke="none"><path d="M12 21s-7-4.5-9.5-9A5.5 5.5 0 0 1 12 6a5.5 5.5 0 0 1 9.5 6C19 16.5 12 21 12 21z"/></svg>
+  );
+  if (name === "phone") return (
+    <svg {...common}><rect x="6" y="2" width="12" height="20" rx="3"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+  );
+  return (
+    <svg {...common} fill="currentColor" stroke="none"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6L12 2z"/></svg>
+  );
+}
+
