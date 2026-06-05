@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import logoAsset from "../assets/vida-emprendedora-logo.png.asset.json";
 import perfilAsset from "../assets/reichely-perfil.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/generador")({
   head: () => ({
@@ -24,11 +25,37 @@ const MOCK_SKILLS = [
 const MOCK_FORMATS = ["WhatsApp", "Instagram", "Carrusel"] as const;
 
 export default function GeneradorPage() {
+  const navigate = useNavigate();
+  const [nombre, setNombre] = useState<string>("");
+  const [authReady, setAuthReady] = useState(false);
   const [skill, setSkill] = useState(MOCK_SKILLS[0].id);
   const [format, setFormat] = useState<typeof MOCK_FORMATS[number]>("Instagram");
   const [idea, setIdea] = useState("");
   const [loading, setLoading] = useState(false);
   const [output, setOutput] = useState<string | null>(null);
+
+  // Gate: requiere sesión + carga el nombre
+  useEffect(() => {
+    let unsub: (() => void) | undefined;
+    supabase.auth.getSession().then(async ({ data }) => {
+      if (!data.session) {
+        navigate({ to: "/" });
+        return;
+      }
+      const { data: perfil } = await supabase
+        .from("perfiles")
+        .select("nombre")
+        .eq("id", data.session.user.id)
+        .maybeSingle();
+      setNombre(perfil?.nombre ?? "");
+      setAuthReady(true);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (!session) navigate({ to: "/" });
+    });
+    unsub = () => sub.subscription.unsubscribe();
+    return () => unsub?.();
+  }, [navigate]);
 
   const currentSkill = MOCK_SKILLS.find((s) => s.id === skill)!;
 
@@ -36,28 +63,48 @@ export default function GeneradorPage() {
     e.preventDefault();
     setLoading(true);
     setOutput(null);
-    // Mock generation (replaced by Supabase Edge Function in Phase 3)
     setTimeout(() => {
       setOutput(
         `✨ ${currentSkill.name} — ${format}\n\n` +
         `Hoy quiero contarte algo sobre "${idea || "tu idea"}".\n\n` +
         `A veces creemos que tenemos que tenerlo todo claro antes de empezar. Pero la verdad es que la claridad llega caminando, no esperando.\n\n` +
         `Si esto te resuena, cuéntamelo en comentarios. Leo cada uno. 💛\n\n` +
-        `— Mock generado. Cuando conectemos el backend, este texto vendrá de tu IA con la skill seleccionada.`
+        `— Mock generado. Cuando conectemos las skills + IA, este texto vendrá personalizado para ti.`
       );
       setLoading(false);
     }, 1200);
   };
 
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    navigate({ to: "/" });
+  };
+
+  if (!authReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Cargando…</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border/60 bg-card/60 backdrop-blur-sm sticky top-0 z-10">
-        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="flex items-center gap-3">
-            <img src={logoAsset.url} alt="" className="w-9 h-9 object-contain" />
-            <span className="text-sm tracking-[0.15em] uppercase text-foreground/80">Vida Emprendedora</span>
-          </Link>
-          <img src={perfilAsset.url} alt="Reichely" className="w-9 h-9 rounded-full object-cover ring-2 ring-primary/30" />
+        <div className="max-w-2xl mx-auto px-6 py-4 flex items-center justify-between gap-3">
+          <div className="flex items-center gap-3 min-w-0">
+            <img src={logoAsset.url} alt="" className="w-9 h-9 object-contain shrink-0" />
+            <span className="text-sm tracking-[0.15em] uppercase text-foreground/80 truncate">Vida Emprendedora</span>
+          </div>
+          <div className="flex items-center gap-3 shrink-0">
+            <button
+              onClick={handleLogout}
+              className="text-xs uppercase tracking-[0.15em] text-muted-foreground hover:text-primary transition"
+            >
+              Salir
+            </button>
+            <img src={perfilAsset.url} alt="Reichely" className="w-9 h-9 rounded-full object-cover ring-2 ring-primary/30" />
+          </div>
         </div>
       </header>
 
@@ -65,9 +112,10 @@ export default function GeneradorPage() {
         <div className="text-center mb-10">
           <p className="text-xs uppercase tracking-[0.25em] text-primary mb-3">Tu estudio de creación</p>
           <h1 className="text-4xl sm:text-5xl serif text-foreground leading-tight">
-            ¿Qué quieres<br />contar hoy?
+            {nombre ? <>Hola, {nombre.split(" ")[0]}.<br />¿Qué quieres contar hoy?</> : <>¿Qué quieres<br />contar hoy?</>}
           </h1>
         </div>
+
 
         <form onSubmit={handleGenerate} className="space-y-7 rounded-2xl border border-border bg-card p-6 sm:p-8 shadow-[var(--shadow-card)]">
           <div>
