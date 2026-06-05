@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import perfilAsset from "../assets/reichely-perfil.png.asset.json";
 import firmaAsset from "../assets/reichely-firma-transparent.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -14,14 +15,49 @@ export const Route = createFileRoute("/")({
 });
 
 function LoginPage() {
+  const navigate = useNavigate();
+  const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "denied">("idle");
+  const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Si ya hay sesión, redirige al generador
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      if (data.session) navigate({ to: "/generador" });
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
+      if (session) navigate({ to: "/generador" });
+    });
+    return () => sub.subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null);
     setStatus("sending");
-    // Mock: simulate magic link send (replaced by Supabase in Phase 2)
-    setTimeout(() => setStatus("sent"), 900);
+
+    const emailLimpio = email.trim().toLowerCase();
+    const nombreLimpio = nombre.trim();
+
+    const { error: otpError } = await supabase.auth.signInWithOtp({
+      email: emailLimpio,
+      options: {
+        data: { nombre: nombreLimpio },
+        emailRedirectTo: `${window.location.origin}/generador`,
+      },
+    });
+
+    if (otpError) {
+      // Si el correo no está en la lista, el trigger devuelve un mensaje claro
+      const msg = otpError.message?.includes("no está autorizado")
+        ? "Este correo no está en la lista de alumnas. Escribe a soporte.membresia@reichelypunto.com"
+        : otpError.message || "No se pudo enviar el enlace. Intenta de nuevo.";
+      setError(msg);
+      setStatus("idle");
+      return;
+    }
+    setStatus("sent");
   };
 
   return (
@@ -53,39 +89,65 @@ function LoginPage() {
             </div>
             <h2 className="text-2xl serif mb-2">Revisa tu correo</h2>
             <p className="text-sm text-muted-foreground">
-              Te hemos enviado un enlace mágico a<br />
+              Te hemos enviado un enlace a<br />
               <span className="text-foreground font-medium">{email}</span>
             </p>
+            <p className="mt-4 text-xs text-muted-foreground">
+              Haz clic en el enlace desde el mismo dispositivo para entrar.
+            </p>
             <button
-              onClick={() => { setStatus("idle"); setEmail(""); }}
+              onClick={() => { setStatus("idle"); setEmail(""); setNombre(""); }}
               className="mt-6 text-sm text-primary underline-offset-4 hover:underline"
             >
               Usar otro correo
             </button>
           </div>
         ) : (
-          <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)]">
-            <label htmlFor="email" className="block text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">
-              Tu correo de alumna
-            </label>
-            <input
-              id="email"
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="tunombre@email.com"
-              className="w-full px-4 py-3 rounded-lg bg-background border border-input text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition"
-            />
+          <form onSubmit={handleSubmit} className="rounded-2xl border border-border bg-card p-8 shadow-[var(--shadow-card)] space-y-4">
+            <div>
+              <label htmlFor="nombre" className="block text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">
+                Tu nombre
+              </label>
+              <input
+                id="nombre"
+                type="text"
+                required
+                value={nombre}
+                onChange={(e) => setNombre(e.target.value)}
+                placeholder="Como quieres que te llame"
+                className="w-full px-4 py-3 rounded-lg bg-background border border-input text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition"
+              />
+            </div>
+            <div>
+              <label htmlFor="email" className="block text-xs uppercase tracking-[0.18em] text-muted-foreground mb-3">
+                Tu correo de alumna
+              </label>
+              <input
+                id="email"
+                type="email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="tunombre@email.com"
+                className="w-full px-4 py-3 rounded-lg bg-background border border-input text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition"
+              />
+            </div>
+
+            {error && (
+              <div className="rounded-lg bg-destructive/10 border border-destructive/30 text-destructive text-sm p-3">
+                {error}
+              </div>
+            )}
+
             <button
               type="submit"
               disabled={status === "sending"}
-              className="mt-5 w-full py-3.5 rounded-lg text-primary-foreground font-medium tracking-wide transition-all hover:opacity-95 disabled:opacity-60 shadow-[var(--shadow-soft)]"
+              className="w-full py-3.5 rounded-lg text-primary-foreground font-medium tracking-wide transition-all hover:opacity-95 disabled:opacity-60 shadow-[var(--shadow-soft)]"
               style={{ background: "var(--gradient-primary)" }}
             >
               {status === "sending" ? "Enviando enlace…" : "Recibir enlace mágico"}
             </button>
-            <p className="mt-6 text-xs text-center text-muted-foreground leading-relaxed">
+            <p className="mt-2 text-xs text-center text-muted-foreground leading-relaxed">
               Solo alumnas activas tienen acceso.<br />
               ¿Problemas? Escribe a{" "}
               <a href="mailto:soporte.membresia@reichelypunto.com" className="text-primary hover:underline">
@@ -94,13 +156,6 @@ function LoginPage() {
             </p>
           </form>
         )}
-
-        {/* Preview link to generator (remove when auth is wired) */}
-        <div className="mt-8 text-center">
-          <Link to="/generador" className="text-xs uppercase tracking-[0.2em] text-muted-foreground hover:text-primary transition">
-            Ver demo del generador →
-          </Link>
-        </div>
 
         <footer className="mt-16 flex flex-col items-center gap-3">
           <img
@@ -174,4 +229,3 @@ function IconGlyph({ name }: { name: string }) {
     <svg {...common} fill="currentColor" stroke="none"><path d="M12 2l1.8 5.4L19 9l-5.2 1.6L12 16l-1.8-5.4L5 9l5.2-1.6L12 2z"/></svg>
   );
 }
-
