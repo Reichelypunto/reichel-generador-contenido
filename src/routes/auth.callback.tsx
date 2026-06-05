@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseAuthReady } from "@/hooks/use-supabase-auth-ready";
 
 export const Route = createFileRoute("/auth/callback")({
   ssr: false,
@@ -9,47 +9,23 @@ export const Route = createFileRoute("/auth/callback")({
 
 function AuthCallbackPage() {
   const navigate = useNavigate();
+  const { isReady, user } = useSupabaseAuthReady();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    let timer: ReturnType<typeof setTimeout> | null = null;
+    if (!isReady) return;
 
-    const waitForSession = async () => {
-      for (let intento = 0; intento < 14; intento += 1) {
-        const { data, error } = await supabase.auth.getUser();
+    if (user) {
+      navigate({ to: "/generador", replace: true });
+      return;
+    }
 
-        if (cancelled) return;
+    const timer = window.setTimeout(() => {
+      setError("No he podido abrir tu sesión todavía. Vuelve a pedir el enlace e inténtalo otra vez.");
+    }, 5000);
 
-        if (!error && data.user) {
-          navigate({ to: "/generador", replace: true });
-          return;
-        }
-
-        await new Promise<void>((resolve) => {
-          timer = setTimeout(resolve, intento < 3 ? 400 : 800);
-        });
-      }
-
-      if (!cancelled) {
-        setError("No he podido abrir tu sesión todavía. Vuelve a pedir el enlace e inténtalo otra vez.");
-      }
-    };
-
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
-        navigate({ to: "/generador", replace: true });
-      }
-    });
-
-    void waitForSession();
-
-    return () => {
-      cancelled = true;
-      if (timer) clearTimeout(timer);
-      sub.subscription.unsubscribe();
-    };
-  }, [navigate]);
+    return () => window.clearTimeout(timer);
+  }, [isReady, navigate, user]);
 
   return (
     <main className="min-h-screen flex items-center justify-center bg-background px-6">

@@ -5,6 +5,7 @@ import logoAsset from "../../assets/vida-emprendedora-logo.png.asset.json";
 import perfilAsset from "../../assets/reichely-perfil.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { generarContenido } from "@/lib/api/generate.functions";
+import { useSupabaseAuthReady } from "@/hooks/use-supabase-auth-ready";
 
 export const Route = createFileRoute("/_authenticated/generador")({
   head: () => ({
@@ -44,9 +45,10 @@ const MOTORES: { id: Motor; emoji: string; titulo: string; sub: string }[] = [
 export default function GeneradorPage() {
   const navigate = useNavigate();
   const generar = useServerFn(generarContenido);
+  const { isReady, user } = useSupabaseAuthReady();
 
   const [nombre, setNombre] = useState<string>("");
-  const [authReady, setAuthReady] = useState(false);
+  const [profileReady, setProfileReady] = useState(false);
 
   const [formato, setFormato] = useState<Formato>("carrusel");
   const [estilo, setEstilo] = useState<Estilo>("negativo");
@@ -60,47 +62,30 @@ export default function GeneradorPage() {
   useEffect(() => {
     let cancelled = false;
 
-    const loadProfile = async (userId: string) => {
-      const { data: perfil } = await supabase
-        .from("perfiles")
-        .select("nombre")
-        .eq("id", userId)
-        .maybeSingle();
-      if (cancelled) return;
-      setNombre(perfil?.nombre ?? "");
-      setAuthReady(true);
-    };
+    if (!isReady) return;
 
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_OUT") {
-        navigate({ to: "/" });
-        return;
-      }
+    if (!user) {
+      navigate({ to: "/", replace: true });
+      return;
+    }
 
-      if (session?.user) {
-        void loadProfile(session.user.id);
-      }
-    });
+    setProfileReady(false);
 
-    const resolveUser = async () => {
-      const { data, error } = await supabase.auth.getUser();
-      if (cancelled) return;
-
-      if (error || !data.user) {
-        navigate({ to: "/" });
-        return;
-      }
-
-      await loadProfile(data.user.id);
-    };
-
-    void resolveUser();
+    void supabase
+      .from("perfiles")
+      .select("nombre")
+      .eq("id", user.id)
+      .maybeSingle()
+      .then(({ data: perfil }) => {
+        if (cancelled) return;
+        setNombre(perfil?.nombre ?? "");
+        setProfileReady(true);
+      });
 
     return () => {
       cancelled = true;
-      sub.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [isReady, navigate, user]);
 
   const handleGenerate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -123,7 +108,7 @@ export default function GeneradorPage() {
     navigate({ to: "/" });
   };
 
-  if (!authReady) {
+  if (!isReady || !profileReady) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <p className="text-sm text-muted-foreground">Cargando…</p>
@@ -146,7 +131,7 @@ export default function GeneradorPage() {
             >
               Salir
             </button>
-            <img src={perfilAsset.url} alt="Reichely" className="w-9 h-9 rounded-full object-cover ring-2 ring-primary/30" />
+            <img src={perfilAsset.url} alt="Reichely" className="w-11 h-11 rounded-full object-cover object-[50%_28%] scale-[1.22] ring-2 ring-primary/30" />
           </div>
         </div>
       </header>

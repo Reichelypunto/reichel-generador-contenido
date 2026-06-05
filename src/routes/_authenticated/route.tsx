@@ -1,16 +1,33 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
-import { supabase } from "@/integrations/supabase/client";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
+import { useSupabaseAuthReady } from "@/hooks/use-supabase-auth-ready";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: async () => {
-    const { data, error } = await supabase.auth.getUser();
-
-    if (error || !data.user) {
-      throw redirect({ to: "/" });
-    }
-
-    return { user: data.user };
-  },
-  component: () => <Outlet />,
+  component: AuthenticatedLayout,
 });
+
+function AuthenticatedLayout() {
+  const navigate = useNavigate();
+  const { isReady, user } = useSupabaseAuthReady();
+
+  useEffect(() => {
+    if (isReady && !user) {
+      navigate({ to: "/", replace: true });
+    }
+  }, [isReady, navigate, user]);
+
+  if (!isReady) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <p className="text-sm text-muted-foreground">Cargando…</p>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return null;
+  }
+
+  return <Outlet />;
+}
