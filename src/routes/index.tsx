@@ -26,8 +26,8 @@ function LoginPage() {
     supabase.auth.getSession().then(({ data }) => {
       if (data.session) navigate({ to: "/generador" });
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (session) navigate({ to: "/generador" });
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) navigate({ to: "/generador" });
     });
     return () => sub.subscription.unsubscribe();
   }, [navigate]);
