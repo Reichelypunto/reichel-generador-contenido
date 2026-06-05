@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import perfilAsset from "../assets/reichely-perfil.png.asset.json";
-import firmaAsset from "../assets/reichely-firma.png.asset.json";
+import firmaAsset from "../assets/reichely-firma-transparent.png.asset.json";
 
 export const Route = createFileRoute("/")({
   head: () => ({
