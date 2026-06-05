@@ -1,12 +1,12 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import logoAsset from "../assets/vida-emprendedora-logo.png.asset.json";
-import perfilAsset from "../assets/reichely-perfil.png.asset.json";
+import logoAsset from "../../assets/vida-emprendedora-logo.png.asset.json";
+import perfilAsset from "../../assets/reichely-perfil.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { generarContenido } from "@/lib/api/generate.functions";
 
-export const Route = createFileRoute("/generador")({
+export const Route = createFileRoute("/_authenticated/generador")({
   head: () => ({
     meta: [
       { title: "Generador — Vida Emprendedora" },
@@ -59,7 +59,6 @@ export default function GeneradorPage() {
 
   useEffect(() => {
     let cancelled = false;
-    let authProbe: ReturnType<typeof setTimeout> | null = null;
 
     const loadProfile = async (userId: string) => {
       const { data: perfil } = await supabase
@@ -84,30 +83,21 @@ export default function GeneradorPage() {
     });
 
     const resolveUser = async () => {
-      for (let intento = 0; intento < 10; intento += 1) {
-        const { data, error } = await supabase.auth.getUser();
-        if (cancelled) return;
+      const { data, error } = await supabase.auth.getUser();
+      if (cancelled) return;
 
-        if (!error && data.user) {
-          await loadProfile(data.user.id);
-          return;
-        }
-
-        await new Promise<void>((resolve) => {
-          authProbe = setTimeout(resolve, intento < 2 ? 400 : 700);
-        });
-      }
-
-      if (!cancelled) {
+      if (error || !data.user) {
         navigate({ to: "/" });
+        return;
       }
+
+      await loadProfile(data.user.id);
     };
 
     void resolveUser();
 
     return () => {
       cancelled = true;
-      if (authProbe) clearTimeout(authProbe);
       sub.subscription.unsubscribe();
     };
   }, [navigate]);

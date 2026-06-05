@@ -21,7 +21,6 @@ function LoginPage() {
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  // Si ya hay sesión, redirige al generador
   useEffect(() => {
     let cancelled = false;
     let authProbe: ReturnType<typeof setTimeout> | null = null;
@@ -43,7 +42,9 @@ function LoginPage() {
     };
 
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) navigate({ to: "/generador" });
+      if (event === "SIGNED_IN" && session) {
+        navigate({ to: "/generador" });
+      }
     });
 
     void resolveUser();
@@ -67,7 +68,7 @@ function LoginPage() {
       email: emailLimpio,
       options: {
         data: { nombre: nombreLimpio },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
