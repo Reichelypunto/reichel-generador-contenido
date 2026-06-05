@@ -58,25 +58,50 @@ export default function GeneradorPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let unsub: (() => void) | undefined;
-    supabase.auth.getSession().then(async ({ data }) => {
-      if (!data.session) {
-        navigate({ to: "/" });
-        return;
-      }
+    let cancelled = false;
+
+    const loadProfile = async (userId: string) => {
       const { data: perfil } = await supabase
         .from("perfiles")
         .select("nombre")
-        .eq("id", data.session.user.id)
+        .eq("id", userId)
         .maybeSingle();
+      if (cancelled) return;
       setNombre(perfil?.nombre ?? "");
       setAuthReady(true);
+    };
+
+    // Listener primero: capta SIGNED_IN del magic link
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_OUT") {
+        navigate({ to: "/" });
+        return;
+      }
+      if (session) {
+        void loadProfile(session.user.id);
+      }
     });
-    const { data: sub } = supabase.auth.onAuthStateChange((_e, session) => {
-      if (!session) navigate({ to: "/" });
+
+    // Después comprobamos sesión existente; si no hay tras un breve margen, al login
+    supabase.auth.getSession().then(({ data }) => {
+      if (cancelled) return;
+      if (data.session) {
+        void loadProfile(data.session.user.id);
+      } else {
+        // Espera por si el hash del magic link aún se está procesando
+        setTimeout(async () => {
+          if (cancelled) return;
+          const { data: again } = await supabase.auth.getSession();
+          if (cancelled) return;
+          if (!again.session) navigate({ to: "/" });
+        }, 1200);
+      }
     });
-    unsub = () => sub.subscription.unsubscribe();
-    return () => unsub?.();
+
+    return () => {
+      cancelled = true;
+      sub.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const handleGenerate = async (e: React.FormEvent) => {
