@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import perfilAsset from "../assets/reichely-perfil.png.asset.json";
 import firmaAsset from "../assets/reichely-firma-transparent.png.asset.json";
@@ -15,45 +15,20 @@ export const Route = createFileRoute("/")({
 });
 
 function LoginPage() {
-  const navigate = useNavigate();
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
 
-  // Si ya hay sesión, redirige al generador
   useEffect(() => {
-    let cancelled = false;
-    let authProbe: ReturnType<typeof setTimeout> | null = null;
-
-    const resolveUser = async () => {
-      for (let intento = 0; intento < 8; intento += 1) {
-        const { data, error } = await supabase.auth.getUser();
-        if (cancelled) return;
-
-        if (!error && data.user) {
-          navigate({ to: "/generador" });
-          return;
-        }
-
-        await new Promise<void>((resolve) => {
-          authProbe = setTimeout(resolve, intento < 2 ? 300 : 600);
-        });
-      }
-    };
-
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) navigate({ to: "/generador" });
+    const { data: sub } = supabase.auth.onAuthStateChange(() => {
+      // El layout autenticado se encarga de la navegación estable una vez existe sesión.
     });
 
-    void resolveUser();
-
     return () => {
-      cancelled = true;
-      if (authProbe) clearTimeout(authProbe);
       sub.subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
