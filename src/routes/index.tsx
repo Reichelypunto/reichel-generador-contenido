@@ -5,6 +5,27 @@ import firmaAsset from "../assets/reichely-firma-transparent.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuthReady } from "@/hooks/use-supabase-auth-ready";
 
+const PUBLISHED_APP_ORIGIN = "https://reichel-generador-contenido.lovable.app";
+
+function getMagicLinkRedirectUrl() {
+  if (typeof window === "undefined") {
+    return `${PUBLISHED_APP_ORIGIN}/auth/callback`;
+  }
+
+  const { origin, hostname } = window.location;
+  const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1";
+  const isPreviewHost =
+    hostname.includes("lovableproject.com") ||
+    hostname.includes("id-preview--") ||
+    hostname.includes("-preview--");
+
+  if (isLocalHost) {
+    return `${origin}/auth/callback`;
+  }
+
+  return `${isPreviewHost ? PUBLISHED_APP_ORIGIN : origin}/auth/callback`;
+}
+
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
@@ -41,7 +62,7 @@ function LoginPage() {
       email: emailLimpio,
       options: {
         data: { nombre: nombreLimpio },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: getMagicLinkRedirectUrl(),
       },
     });
 
