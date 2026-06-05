@@ -6,6 +6,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSupabaseAuthReady } from "@/hooks/use-supabase-auth-ready";
 
 const PUBLISHED_APP_ORIGIN = "https://reichel-generador-contenido.lovable.app";
+const PUBLISHED_APP_HOSTNAME = new URL(PUBLISHED_APP_ORIGIN).hostname;
 
 function getMagicLinkRedirectUrl() {
   if (typeof window === "undefined") {
@@ -14,16 +15,13 @@ function getMagicLinkRedirectUrl() {
 
   const { origin, hostname } = window.location;
   const isLocalHost = hostname === "localhost" || hostname === "127.0.0.1";
-  const isPreviewHost =
-    hostname.includes("lovableproject.com") ||
-    hostname.includes("id-preview--") ||
-    hostname.includes("-preview--");
+  const isPublishedHost = hostname === PUBLISHED_APP_HOSTNAME;
 
   if (isLocalHost) {
     return `${origin}/auth/callback`;
   }
 
-  return `${isPreviewHost ? PUBLISHED_APP_ORIGIN : origin}/auth/callback`;
+  return `${isPublishedHost ? origin : PUBLISHED_APP_ORIGIN}/auth/callback`;
 }
 
 export const Route = createFileRoute("/")({
