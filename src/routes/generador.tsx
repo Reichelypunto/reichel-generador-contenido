@@ -59,6 +59,7 @@ export default function GeneradorPage() {
 
   useEffect(() => {
     let cancelled = false;
+    let authProbe: ReturnType<typeof setTimeout> | null = null;
 
     const loadProfile = async (userId: string) => {
       const { data: perfil } = await supabase
@@ -71,35 +72,42 @@ export default function GeneradorPage() {
       setAuthReady(true);
     };
 
-    // Listener primero: capta SIGNED_IN del magic link
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_OUT") {
         navigate({ to: "/" });
         return;
       }
-      if (session) {
+
+      if (session?.user) {
         void loadProfile(session.user.id);
       }
     });
 
-    // Después comprobamos sesión existente; si no hay tras un breve margen, al login
-    supabase.auth.getSession().then(({ data }) => {
-      if (cancelled) return;
-      if (data.session) {
-        void loadProfile(data.session.user.id);
-      } else {
-        // Espera por si el hash del magic link aún se está procesando
-        setTimeout(async () => {
-          if (cancelled) return;
-          const { data: again } = await supabase.auth.getSession();
-          if (cancelled) return;
-          if (!again.session) navigate({ to: "/" });
-        }, 1200);
+    const resolveUser = async () => {
+      for (let intento = 0; intento < 10; intento += 1) {
+        const { data, error } = await supabase.auth.getUser();
+        if (cancelled) return;
+
+        if (!error && data.user) {
+          await loadProfile(data.user.id);
+          return;
+        }
+
+        await new Promise<void>((resolve) => {
+          authProbe = setTimeout(resolve, intento < 2 ? 400 : 700);
+        });
       }
-    });
+
+      if (!cancelled) {
+        navigate({ to: "/" });
+      }
+    };
+
+    void resolveUser();
 
     return () => {
       cancelled = true;
+      if (authProbe) clearTimeout(authProbe);
       sub.subscription.unsubscribe();
     };
   }, [navigate]);

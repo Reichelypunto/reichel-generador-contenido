@@ -23,13 +23,36 @@ function LoginPage() {
 
   // Si ya hay sesión, redirige al generador
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => {
-      if (data.session) navigate({ to: "/generador" });
-    });
+    let cancelled = false;
+    let authProbe: ReturnType<typeof setTimeout> | null = null;
+
+    const resolveUser = async () => {
+      for (let intento = 0; intento < 8; intento += 1) {
+        const { data, error } = await supabase.auth.getUser();
+        if (cancelled) return;
+
+        if (!error && data.user) {
+          navigate({ to: "/generador" });
+          return;
+        }
+
+        await new Promise<void>((resolve) => {
+          authProbe = setTimeout(resolve, intento < 2 ? 300 : 600);
+        });
+      }
+    };
+
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) navigate({ to: "/generador" });
     });
-    return () => sub.subscription.unsubscribe();
+
+    void resolveUser();
+
+    return () => {
+      cancelled = true;
+      if (authProbe) clearTimeout(authProbe);
+      sub.subscription.unsubscribe();
+    };
   }, [navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
