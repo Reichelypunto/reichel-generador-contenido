@@ -106,8 +106,7 @@ function LoginPage() {
           <img
             src={firmaAsset.url}
             alt="Reichely punto 2.0"
-            className="h-12 object-contain"
-            style={{ mixBlendMode: "multiply" }}
+            className="h-14 object-contain"
           />
         </footer>
       </div>
