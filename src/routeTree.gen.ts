@@ -9,55 +9,48 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as GeneradorRouteImport } from './routes/generador'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedGeneradorRouteImport } from './routes/_authenticated/generador'
 
-const GeneradorRoute = GeneradorRouteImport.update({
-  id: '/generador',
-  path: '/generador',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedGeneradorRoute = AuthenticatedGeneradorRouteImport.update({
+  id: '/_authenticated/generador',
+  path: '/generador',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/generador': typeof GeneradorRoute
+  '/generador': typeof AuthenticatedGeneradorRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/generador': typeof GeneradorRoute
+  '/generador': typeof AuthenticatedGeneradorRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/generador': typeof GeneradorRoute
+  '/_authenticated/generador': typeof AuthenticatedGeneradorRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths: '/' | '/generador'
   fileRoutesByTo: FileRoutesByTo
   to: '/' | '/generador'
-  id: '__root__' | '/' | '/generador'
+  id: '__root__' | '/' | '/_authenticated/generador'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  GeneradorRoute: typeof GeneradorRoute
+  AuthenticatedGeneradorRoute: typeof AuthenticatedGeneradorRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/generador': {
-      id: '/generador'
-      path: '/generador'
-      fullPath: '/generador'
-      preLoaderRoute: typeof GeneradorRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/': {
       id: '/'
       path: '/'
@@ -65,13 +58,30 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/generador': {
+      id: '/_authenticated/generador'
+      path: '/generador'
+      fullPath: '/generador'
+      preLoaderRoute: typeof AuthenticatedGeneradorRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  GeneradorRoute: GeneradorRoute,
+  AuthenticatedGeneradorRoute: AuthenticatedGeneradorRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
+
+import type { getRouter } from './router.tsx'
+import type { startInstance } from './start.ts'
+declare module '@tanstack/react-start' {
+  interface Register {
+    ssr: true
+    router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
+  }
+}

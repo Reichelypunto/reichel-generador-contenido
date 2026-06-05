@@ -6,7 +6,7 @@ import perfilAsset from "../assets/reichely-perfil.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { generarContenido } from "@/lib/api/generate.functions";
 
-export const Route = createFileRoute("/generador")({
+export const Route = createFileRoute("/_authenticated/generador")({
   head: () => ({
     meta: [
       { title: "Generador — Vida Emprendedora" },
