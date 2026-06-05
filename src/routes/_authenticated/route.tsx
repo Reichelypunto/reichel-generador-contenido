@@ -1,20 +1,21 @@
-import { createFileRoute, Outlet, redirect } from "@tanstack/react-router";
+import { createFileRoute, Outlet, useNavigate } from "@tanstack/react-router";
+import { useEffect } from "react";
 import { useSupabaseAuthReady } from "@/hooks/use-supabase-auth-ready";
 
 export const Route = createFileRoute("/_authenticated")({
   ssr: false,
-  beforeLoad: () => {
-    const hasAccessToken = document.cookie.includes("sb-") || typeof window !== "undefined";
-
-    if (!hasAccessToken) {
-      throw redirect({ to: "/" });
-    }
-  },
   component: AuthenticatedLayout,
 });
 
 function AuthenticatedLayout() {
+  const navigate = useNavigate();
   const { isReady, user } = useSupabaseAuthReady();
+
+  useEffect(() => {
+    if (isReady && !user) {
+      navigate({ to: "/", replace: true });
+    }
+  }, [isReady, navigate, user]);
 
   if (!isReady) {
     return (
@@ -25,7 +26,7 @@ function AuthenticatedLayout() {
   }
 
   if (!user) {
-    throw redirect({ to: "/" });
+    return null;
   }
 
   return <Outlet />;
