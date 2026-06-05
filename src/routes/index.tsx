@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import perfilAsset from "../assets/reichely-perfil.png.asset.json";
 import firmaAsset from "../assets/reichely-firma-transparent.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
+import { useSupabaseAuthReady } from "@/hooks/use-supabase-auth-ready";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -16,45 +17,17 @@ export const Route = createFileRoute("/")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { isReady, user } = useSupabaseAuthReady();
   const [nombre, setNombre] = useState("");
   const [email, setEmail] = useState("");
   const [status, setStatus] = useState<"idle" | "sending" | "sent">("idle");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    let authProbe: ReturnType<typeof setTimeout> | null = null;
-
-    const resolveUser = async () => {
-      for (let intento = 0; intento < 8; intento += 1) {
-        const { data, error } = await supabase.auth.getUser();
-        if (cancelled) return;
-
-        if (!error && data.user) {
-          navigate({ to: "/generador" });
-          return;
-        }
-
-        await new Promise<void>((resolve) => {
-          authProbe = setTimeout(resolve, intento < 2 ? 300 : 600);
-        });
-      }
-    };
-
-    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === "SIGNED_IN" && session) {
-        navigate({ to: "/generador" });
-      }
-    });
-
-    void resolveUser();
-
-    return () => {
-      cancelled = true;
-      if (authProbe) clearTimeout(authProbe);
-      sub.subscription.unsubscribe();
-    };
-  }, [navigate]);
+    if (isReady && user) {
+      navigate({ to: "/generador", replace: true });
+    }
+  }, [isReady, navigate, user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
