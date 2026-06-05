@@ -1,7 +1,8 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
+import { useEffect, useState } from "react";
 import logoAsset from "../assets/vida-emprendedora-logo.png.asset.json";
 import perfilAsset from "../assets/reichely-perfil.png.asset.json";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/generador")({
   head: () => ({
