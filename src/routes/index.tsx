@@ -68,7 +68,7 @@ function LoginPage() {
       email: emailLimpio,
       options: {
         data: { nombre: nombreLimpio },
-        emailRedirectTo: window.location.origin,
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
