@@ -67,7 +67,7 @@ function LoginPage() {
       email: emailLimpio,
       options: {
         data: { nombre: nombreLimpio },
-        emailRedirectTo: `${window.location.origin}/generador`,
+        emailRedirectTo: window.location.origin,
       },
     });
 
