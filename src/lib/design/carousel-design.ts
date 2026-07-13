@@ -1,54 +1,22 @@
 /**
  * carousel-design.ts
  *
- * Sistema de diseño visual para los carruseles de "Vida Emprendedora".
- * Esto es lo que hoy le falta al generador (src/lib/api/generate.functions.ts):
- * la skill "carruseles-skill.md" produce copy validado, pero la app solo
- * lo muestra como texto plano (<pre>{output}</pre> en generador.tsx).
+ * Sistema de diseño visual para los carruseles del generador. Convierte el
+ * copy validado (JSON de la skill) en HTML de slides diseñadas, listas
+ * para previsualizar y exportar como imagen — igual que hace el método de
+ * Maverick Maltin, pero con la paleta y tipografía reales de cada marca
+ * tuya (ver brands.ts), no genéricas.
  *
- * Este módulo convierte ese copy en HTML de slides diseñadas, listas para
- * previsualizar y exportar como imagen — igual que hace el método de
- * Maverick Maltin, pero con la paleta y tipografía reales de Vida
- * Emprendedora (tomadas de src/styles.css), no genéricas.
+ * v2: ahora es multi-marca. Antes tenía la paleta de Vida Emprendedora fija;
+ * ahora recibe `brandId` y resuelve los tokens vía getBrandTokens().
  *
  * Colócalo en: src/lib/design/carousel-design.ts
  */
 
-// ---------------------------------------------------------------------------
-// 1. TOKENS DE MARCA — extraídos de src/styles.css (:root, "Vida Emprendedora palette")
-// ---------------------------------------------------------------------------
-
-export const BRAND = {
-  // oklch(0.48 0.19 0) del CSS original
-  PRIMARY: "#a3134b",
-  // versión aclarada ~20% — para tags sobre fondo oscuro, pills
-  LIGHT: "#c9527f",
-  // versión oscurecida ~30% — CTA text, ancla del degradado
-  DARK: "#6e0d34",
-  // oklch(0.972 0.025 90) — crema cálido, nunca blanco puro
-  LIGHT_BG: "#f9f2e2",
-  // ligeramente más oscuro que LIGHT_BG
-  LIGHT_BORDER: "#e9dcc0",
-  // negro cálido con tinte magenta (coherente con --accent peach del CSS)
-  DARK_BG: "#211018",
-  // acento cálido (oklch(0.88 0.06 25))
-  ACCENT_PEACH: "#e9c6ab",
-} as const;
-
-export const GRADIENT = `linear-gradient(165deg, ${BRAND.DARK} 0%, ${BRAND.PRIMARY} 55%, ${BRAND.LIGHT} 100%)`;
-
-// Tipografía real del proyecto (ya cargada en styles.css vía Google Fonts)
-export const FONTS = {
-  heading: "'Cormorant Garamond', Georgia, serif",
-  body: "'DM Sans', system-ui, sans-serif",
-  googleFontsUrl:
-    "https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap",
-} as const;
-
-export const HANDLE = "@reichelypunto"; // TODO: mover a config/perfil si se vuelve multi-marca
+import { getBrandTokens, FONTS, type BrandId, type BrandTokens } from "./brands";
 
 // ---------------------------------------------------------------------------
-// 2. TIPOS
+// 1. TIPOS
 // ---------------------------------------------------------------------------
 
 export interface CarouselSlideData {
@@ -60,22 +28,26 @@ export interface CarouselSlideData {
 
 export interface CarouselBuildOptions {
   slides: CarouselSlideData[];
-  /** Alterna fondo claro/oscuro empezando en claro, salvo overrides puntuales */
+  /** Qué marca aplicar (paleta, tipografía, nombre, handle). Default: vida-emprendedora */
+  brandId?: BrandId;
   backgroundOverride?: Record<number, "light" | "dark" | "gradient">;
   logoUrl?: string;
+  /** Sobrescribe el nombre de marca mostrado (si no, usa el de brands.ts) */
   brandName?: string;
+  /** Sobrescribe el handle mostrado (si no, usa el de brands.ts) */
   handle?: string;
 }
 
+type BgType = "light" | "dark" | "gradient";
+
 // ---------------------------------------------------------------------------
-// 3. COMPONENTES REUTILIZABLES (idénticos en espíritu al master prompt de Maverick,
-//    pero con los tokens de arriba)
+// 2. COMPONENTES REUTILIZABLES (reciben los tokens de marca por parámetro)
 // ---------------------------------------------------------------------------
 
-function progressBar(index: number, total: number, isLight: boolean): string {
+function progressBar(index: number, total: number, isLight: boolean, brand: BrandTokens): string {
   const pct = ((index + 1) / total) * 100;
   const track = isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)";
-  const fill = isLight ? BRAND.PRIMARY : "#fff";
+  const fill = isLight ? brand.PRIMARY : "#fff";
   const label = isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.4)";
   return `<div style="position:absolute;bottom:0;left:0;right:0;padding:16px 28px 20px;z-index:10;display:flex;align-items:center;gap:10px;">
     <div style="flex:1;height:3px;background:${track};border-radius:2px;overflow:hidden;">
@@ -95,10 +67,10 @@ function swipeArrow(isLight: boolean): string {
   </div>`;
 }
 
-function logoLockup(logoUrl: string | undefined, brandName: string): string {
+function logoLockup(logoUrl: string | undefined, brandName: string, brand: BrandTokens): string {
   const icon = logoUrl
     ? `<img src="${logoUrl}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />`
-    : `<div style="width:40px;height:40px;border-radius:50%;background:${BRAND.PRIMARY};display:flex;align-items:center;justify-content:center;color:#fff;font-family:${FONTS.heading};font-size:18px;">${brandName.charAt(0)}</div>`;
+    : `<div style="width:40px;height:40px;border-radius:50%;background:${brand.PRIMARY};display:flex;align-items:center;justify-content:center;color:#fff;font-family:${FONTS.heading};font-size:18px;">${brandName.charAt(0)}</div>`;
   return `<div style="display:flex;align-items:center;gap:12px;">
     ${icon}
     <span style="font-family:${FONTS.body};font-size:13px;font-weight:600;letter-spacing:0.5px;">${brandName}</span>
@@ -106,66 +78,67 @@ function logoLockup(logoUrl: string | undefined, brandName: string): string {
 }
 
 // ---------------------------------------------------------------------------
-// 4. RENDER DE UN SLIDE
+// 3. RENDER DE UN SLIDE
 // ---------------------------------------------------------------------------
 
-type BgType = "light" | "dark" | "gradient";
-
-function bgFor(index: number, total: number, override?: BgType): { type: BgType; css: string; isLight: boolean } {
+function bgFor(
+  index: number,
+  total: number,
+  brand: BrandTokens,
+  override?: BgType
+): { type: BgType; css: string; isLight: boolean } {
+  const gradient = `linear-gradient(165deg, ${brand.DARK} 0%, ${brand.PRIMARY} 55%, ${brand.LIGHT} 100%)`;
   if (override) {
     return {
       type: override,
-      css: override === "gradient" ? GRADIENT : override === "dark" ? BRAND.DARK_BG : BRAND.LIGHT_BG,
+      css: override === "gradient" ? gradient : override === "dark" ? brand.DARK_BG : brand.LIGHT_BG,
       isLight: override === "light",
     };
   }
-  // Primer slide claro, último degradado (CTA), resto alterna
-  if (index === 0) return { type: "light", css: BRAND.LIGHT_BG, isLight: true };
-  if (index === total - 1) return { type: "gradient", css: GRADIENT, isLight: false };
+  if (index === 0) return { type: "light", css: brand.LIGHT_BG, isLight: true };
+  if (index === total - 1) return { type: "gradient", css: gradient, isLight: false };
   const isLight = index % 2 === 0;
-  return { type: isLight ? "light" : "dark", css: isLight ? BRAND.LIGHT_BG : BRAND.DARK_BG, isLight };
+  return { type: isLight ? "light" : "dark", css: isLight ? brand.LIGHT_BG : brand.DARK_BG, isLight };
+}
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function renderSlide(
   slide: CarouselSlideData,
   total: number,
-  opts: CarouselBuildOptions
+  opts: CarouselBuildOptions,
+  brand: BrandTokens
 ): string {
   const idx = slide.index - 1;
   const isLast = slide.index === total;
   const isFirst = slide.index === 1;
   const override = opts.backgroundOverride?.[slide.index];
-  const bg = bgFor(idx, total, override);
-  const textColor = bg.isLight ? BRAND.DARK_BG : "#fff";
-  const tagColor = bg.type === "gradient" ? "rgba(255,255,255,0.6)" : bg.isLight ? BRAND.PRIMARY : BRAND.LIGHT;
-
+  const bg = bgFor(idx, total, brand, override);
+  const textColor = bg.isLight ? brand.DARK_BG : "#fff";
+  const tagColor = bg.type === "gradient" ? "rgba(255,255,255,0.6)" : bg.isLight ? brand.PRIMARY : brand.LIGHT;
   const justify = isFirst || isLast ? "center" : "flex-end";
+  const brandName = opts.brandName ?? brand.name;
 
   return `<div class="slide" data-index="${idx}" style="position:relative;width:420px;height:525px;flex-shrink:0;background:${bg.css};display:flex;flex-direction:column;justify-content:${justify};padding:0 36px 52px;overflow:hidden;box-sizing:border-box;">
-    ${isFirst ? `<div style="position:absolute;top:40px;left:36px;">${logoLockup(opts.logoUrl, opts.brandName ?? "Vida Emprendedora")}</div>` : ""}
+    ${isFirst ? `<div style="position:absolute;top:40px;left:36px;">${logoLockup(opts.logoUrl, brandName, brand)}</div>` : ""}
     <span style="font-family:${FONTS.body};font-size:10px;font-weight:600;letter-spacing:2px;color:${tagColor};text-transform:uppercase;margin-bottom:16px;">${isLast ? "Conclusión" : isFirst ? "Empieza aquí" : `Slide ${slide.index}`}</span>
     <p style="font-family:${FONTS.heading};font-weight:${isFirst ? 600 : 500};font-size:${isFirst ? "32px" : "26px"};line-height:1.15;letter-spacing:-0.4px;color:${textColor};margin:0;white-space:pre-wrap;">${escapeHtml(slide.copy)}</p>
-    ${progressBar(idx, total, bg.isLight)}
+    ${progressBar(idx, total, bg.isLight, brand)}
     ${isLast ? "" : swipeArrow(bg.isLight)}
   </div>`;
 }
 
-function escapeHtml(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
-}
-
 // ---------------------------------------------------------------------------
-// 5. DOCUMENTO COMPLETO (marco estilo Instagram + track deslizable)
-//    — el mismo patrón de "Instagram Frame" del master prompt de Maverick.
+// 4. DOCUMENTO COMPLETO (marco estilo Instagram + track deslizable)
 // ---------------------------------------------------------------------------
 
 export function buildCarouselHtml(opts: CarouselBuildOptions): string {
+  const brand = getBrandTokens(opts.brandId);
   const total = opts.slides.length;
-  const slidesHtml = opts.slides.map((s) => renderSlide(s, total, opts)).join("\n");
-  const handle = opts.handle ?? HANDLE;
+  const slidesHtml = opts.slides.map((s) => renderSlide(s, total, opts, brand)).join("\n");
+  const handle = opts.handle ?? brand.handle ?? brand.name;
 
   return `<!doctype html>
 <html>
@@ -203,8 +176,6 @@ export function buildCarouselHtml(opts: CarouselBuildOptions): string {
     <div class="ig-caption"><strong>${handle}</strong> — desliza para leer el carrusel completo →</div>
   </div>
   <script>
-    // swipe manual solo para la previsualización en navegador;
-    // el script de exportación (export-carousel.ts) mueve el track directamente.
     let startX = 0, current = 0;
     const track = document.getElementById('track');
     const totalSlides = ${total};
