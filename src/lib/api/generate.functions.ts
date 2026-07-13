@@ -15,6 +15,7 @@ const SKILLS: Record<string, string> = {
   stories: storiesSkill,
   post: postSkill,
   venta: ventaSutilSkill,
+  // "email" no tiene skill .md propia — se construye inline (ver buildEmailSkillPrompt)
 };
 
 const FORMATO_LABEL: Record<string, string> = {
@@ -23,6 +24,7 @@ const FORMATO_LABEL: Record<string, string> = {
   post: "Post / Caption para feed",
   stories: "Secuencia de Stories (4-8 pantallas)",
   venta: "Venta Sutil (sin precio, el cliente inicia)",
+  email: "Email (estructura de 8 partes + alter ego)",
 };
 
 const ESTILO_LABEL: Record<string, string> = {
@@ -38,10 +40,102 @@ const MOTOR_LABEL: Record<string, string> = {
   reflejo: "Reflejo — 'Esto soy yo'",
 };
 
+const ALTER_EGO_LABEL: Record<string, string> = {
+  "la-virgo": "La Virgo — precisa, analítica, un poco perfeccionista",
+  "la-procrastinadora": "La Procrastinadora — se reconoce en dejarlo todo para luego",
+  "la-musa": "La Musa — creativa, emocional, inspiradora",
+  "la-loca-del-cono": "La Loca del Coño — directa, sin filtro, irreverente",
+  "la-bruji": "La Bruji — intuitiva, espiritual, conecta con el instinto",
+};
+
+// ---------------------------------------------------------------------------
+// Voz de marca — Vida Emprendedora usa las brand guidelines completas
+// (alumnas, metodología de Reichely). RRSS y Keles & Reichel son de uso
+// privado y usan una voz de marca más simple, tomada del artefacto
+// "content-generator.tsx" (Claude.ai) que las originó.
+// ---------------------------------------------------------------------------
+
+function brandVoiceBlock(marca: string): string {
+  if (marca === "rrss") {
+    return `Eres la estratega de contenido digital de "Vender en RRSS sin Complicaciones", una academia digital para emprendedoras que quieren vender con estructura.
+
+REGLAS ABSOLUTAS:
+- Español de España únicamente. Nunca latinoamericanismos.
+- Tono adulto, directo, sin fluff, sin corporate speak.
+- Autoridad demostrada, nunca declarada.
+- CTA siempre incluido. Es obligatorio, nunca opcional.
+- Posiciona sin enseñar. Habla del problema, no de la solución.
+- Abre bucles mentales. No los cierres.
+- Sin clichés de coaching: nada de "paso a paso", "transforma tu vida", "empoderarte", "potencial", "viaje".
+- Sin negritas, sin cursivas, sin emojis excesivos.
+- Sin párrafos largos. Sin motivación vacía.
+- Firma emails siempre: Hasta luego, Maricarmen 👋🏼`;
+  }
+  if (marca === "kr") {
+    return `Eres la estratega de contenido digital de Keles & Reichel, un programa de acompañamiento para emprendedoras. Voz siempre en plural (Keles & Reichel).
+
+REGLAS ABSOLUTAS:
+- Español de España únicamente. Nunca latinoamericanismos.
+- Tono adulto, directo, sin fluff, sin corporate speak.
+- Autoridad demostrada, nunca declarada.
+- CTA siempre incluido. Es obligatorio, nunca opcional.
+- Posiciona sin enseñar. Habla del problema, no de la solución.
+- Abre bucles mentales. No los cierres.
+- Sin clichés de coaching: nada de "paso a paso", "transforma tu vida", "empoderarte", "potencial", "viaje".
+- Sin negritas, sin cursivas, sin emojis excesivos.
+- Sin párrafos largos. Sin motivación vacía.
+- Firma emails siempre: Keles & Reichel 💋
+- Enlace podcast siempre: Escúchalo aquí (hipervínculo)`;
+  }
+  // vida-emprendedora (default) — brand guidelines completas de alumnas
+  return brandGuidelines;
+}
+
+// ---------------------------------------------------------------------------
+// Email — no hay skill .md todavía; instrucciones inline (adaptadas de
+// content-generator.tsx) con soporte de alter ego.
+// ---------------------------------------------------------------------------
+
+function buildEmailSkillPrompt(alterEgo: string | undefined): string {
+  const alterEgoLine = alterEgo
+    ? `ALTER EGO PARA ESTE EMAIL: ${ALTER_EGO_LABEL[alterEgo] ?? alterEgo}`
+    : "ALTER EGO PARA ESTE EMAIL: (no especificado — elige el tono más adecuado al tema)";
+
+  return `# Email — Generador de Emails v1
+
+${alterEgoLine}
+
+ASUNTO: Elige el más potente según el alter ego:
+- Frase corta con peso (no más de 6 palabras)
+- Pregunta que incomoda
+- Nombre propio + algo que le duele
+- Lo cotidiano que no lo parece
+Sin clickbait vacío. Sin exclamaciones.
+
+PREENCABEZADO: Tensa el asunto. No lo repite. No lo explica.
+
+ESTRUCTURA DEL EMAIL (8 partes, sin títulos):
+1. Apertura: una línea. Sin "Hola". Sin nombre. Directo al tema.
+2. Tensión: el problema desde dentro. Cómo se siente, no qué hace mal.
+3. Identificación: describe a la lectora en su situación exacta. Que se vea.
+4. Sarcasmo elegante: una línea que duele pero hace gracia. Filtro de clientes.
+5. Giro: la perspectiva que no esperaba. Contraintuitivo.
+6. Tip que abre: da algo útil pero que abre más preguntas de las que cierra.
+7. CTA integrado en texto natural. Nunca botón.
+8. Cierre incómodo: última línea que queda dando vueltas.
+
+PROHIBIDO: "postureo" / párrafos de más de 4 líneas / motivación vacía / latinoamericanismos / botones de CTA
+
+Luego genera 3 VARIACIONES DE ASUNTO para A/B testing:
+[Tipo de asunto] | [Asunto] | [Preencabezado]`;
+}
+
 const InputSchema = z.object({
-  formato: z.enum(["carrusel", "reel", "post", "stories", "venta"]),
+  formato: z.enum(["carrusel", "reel", "post", "stories", "venta", "email"]),
   estilo: z.enum(["negativo", "info-secreta", "controversial"]),
   motor: z.enum(["aspiracion", "educacion", "impacto", "reflejo"]),
+  marca: z.enum(["vida-emprendedora", "rrss", "kr"]).default("vida-emprendedora"),
+  alterEgo: z.enum(["la-virgo", "la-procrastinadora", "la-musa", "la-loca-del-cono", "la-bruji"]).optional(),
   tema: z.string().min(3).max(4000),
 });
 
@@ -53,14 +147,20 @@ export const generarContenido = createServerFn({ method: "POST" })
       throw new Error("LOVABLE_API_KEY no configurada");
     }
 
-    const skill = SKILLS[data.formato];
+    const isVidaEmprendedora = data.marca === "vida-emprendedora";
+    const skill = data.formato === "email" ? buildEmailSkillPrompt(data.alterEgo) : SKILLS[data.formato];
+    const voz = brandVoiceBlock(data.marca);
 
-    const systemPrompt = `Eres una creadora de contenido experta entrenada para alumnas de Vida Emprendedora (escuela de Reichely Portales).
+    const systemPrompt = `${
+      isVidaEmprendedora
+        ? "Eres una creadora de contenido experta entrenada para alumnas de Vida Emprendedora (escuela de Reichely Portales)."
+        : "Eres una creadora de contenido experta trabajando para el equipo de Reichely Portales."
+    }
 
-Tu trabajo es generar contenido siguiendo AL PIE DE LA LETRA la skill correspondiente y las brand guidelines que recibes abajo.
+Tu trabajo es generar contenido siguiendo AL PIE DE LA LETRA la skill correspondiente y la voz de marca que recibes abajo.
 
-# BRAND GUIDELINES (voz, tono, valores — aplican SIEMPRE)
-${brandGuidelines}
+# VOZ DE MARCA (aplica SIEMPRE)
+${voz}
 
 # SKILL ACTIVA — ${FORMATO_LABEL[data.formato]}
 ${skill}
@@ -70,7 +170,7 @@ ${skill}
 - Motor viral: ${MOTOR_LABEL[data.motor]}
 - Entrega el contenido FINAL listo para publicar, sin meta-comentarios ni explicaciones.
 - Respeta exactamente la estructura definida en la skill (número de slides, formato de guion, etc.).
-- Voz cálida, cercana, de mujer a mujer. Nada de corporativo ni gurú.`;
+${isVidaEmprendedora ? "- Voz cálida, cercana, de mujer a mujer. Nada de corporativo ni gurú." : ""}`;
 
     const userPrompt = `TEMA / INSIGHT DE ENTRADA:\n\n${data.tema}\n\nGenera el contenido completo ahora.`;
 
