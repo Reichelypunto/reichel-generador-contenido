@@ -4,11 +4,11 @@
  * Reemplaza el bloque `<pre>{output}</pre>` de
  * src/routes/_authenticated/generador.tsx cuando formato === "carrusel".
  *
- * Renderiza el HTML generado por carousel-design.ts dentro de un <iframe>,
- * así lo que ve la usuaria en la app es EXACTAMENTE lo mismo que va a
- * exportarse como PNG (mismo motor de render, mismo ancho de 420px) —
- * evita el error nº1 de la lista de "Common Export Mistakes" del método
- * de Maverick: que el preview y el export no coincidan.
+ * v2: multi-marca. Recibe `brandId` para renderizar con la paleta correcta
+ * (Vida Emprendedora / RRSS sin Complicaciones / Keles & Reichel). Solo usa
+ * el logo real (vida-emprendedora-logo.png) cuando la marca es Vida
+ * Emprendedora — las otras dos marcas no tienen ese asset, así que caen al
+ * círculo con inicial que ya soporta carousel-design.ts.
  *
  * Colócalo en: src/components/CarouselPreview.tsx
  */
@@ -16,17 +16,19 @@
 import { useMemo, useState } from "react";
 import { buildCarouselHtml } from "@/lib/design/carousel-design";
 import { parseCarouselOutput } from "@/lib/design/parse-carousel-output";
+import type { BrandId } from "@/lib/design/brands";
 import logoAsset from "../assets/vida-emprendedora-logo.png.asset.json";
 
 interface CarouselPreviewProps {
   /** El string tal cual devuelve generarContenido() */
   rawOutput: string;
-  brandName?: string;
+  /** Marca activa — determina paleta, tipografía y logo. Default: vida-emprendedora */
+  brandId?: BrandId;
   /** Llamada al endpoint de exportación (ver export-carousel.ts / server-export.functions.ts) */
   onExport?: (html: string) => Promise<void>;
 }
 
-export function CarouselPreview({ rawOutput, brandName = "Vida Emprendedora", onExport }: CarouselPreviewProps) {
+export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora", onExport }: CarouselPreviewProps) {
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState<string | null>(null);
 
@@ -36,10 +38,10 @@ export function CarouselPreview({ rawOutput, brandName = "Vida Emprendedora", on
     if (parsed.slides.length === 0) return null;
     return buildCarouselHtml({
       slides: parsed.slides,
-      logoUrl: logoAsset.url,
-      brandName,
+      brandId,
+      logoUrl: brandId === "vida-emprendedora" ? logoAsset.url : undefined,
     });
-  }, [parsed, brandName]);
+  }, [parsed, brandId]);
 
   if (!html) {
     // No se pudo parsear como carrusel (formato inesperado del modelo) —
