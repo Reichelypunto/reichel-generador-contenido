@@ -6,6 +6,7 @@ import perfilAsset from "../../assets/reichely-perfil.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { generarContenido } from "@/lib/api/generate.functions";
 import { useSupabaseAuthReady } from "@/hooks/use-supabase-auth-ready";
+import { CarouselPreview } from "@/components/CarouselPreview";
 
 export const Route = createFileRoute("/_authenticated/generador")({
   head: () => ({
@@ -222,7 +223,13 @@ export default function GeneradorPage() {
           </div>
         )}
 
-        {output && (
+        {output && formato === "carrusel" && (
+          <div className="mt-8">
+            <CarouselPreview rawOutput={output} />
+          </div>
+        )}
+
+        {output && formato !== "carrusel" && (
           <article className="mt-8 rounded-2xl border border-primary/20 bg-card p-6 sm:p-8 shadow-[var(--shadow-soft)]">
             <div className="flex items-center justify-between mb-4">
               <span className="text-xs uppercase tracking-[0.2em] text-primary">Tu contenido</span>
