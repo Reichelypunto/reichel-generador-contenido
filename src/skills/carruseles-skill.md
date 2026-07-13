@@ -1,22 +1,23 @@
 ---
 name: carruseles
-description: Generate viral Instagram carousels with psychological analysis, 10 viral hook formulas, 3 execution styles, 11-element validation, batch generation (5-10 carousels), and smart export to DOCX/Notion
-argument-hint: "[content] --style=Negativo|Info-Secreta|Controversial --batch=5-10 --export=docx|notion|both --include-visuals"
+description: Generate viral Instagram carousels with psychological analysis, 10 viral hook formulas, 3 execution styles, 10-angle narrative variety system for batch generation, 11-element validation, batch generation (5-10 carousels), and structured JSON export ready for visual rendering (app) plus DOCX/Notion/CSV
+argument-hint: "[content] --style=Negativo|Info-Secreta|Controversial --angle=Emocional|Educativo|Provocativo|Social-Proof|FOMO|Curiosidad|Comparacion|Negativo|Simplificacion|Identidad --batch=5-10 --export=json|docx|notion|both --include-visuals"
 ---
 
-# Carruseles — Viral Instagram Copy Generator v2.0
+# Carruseles — Viral Instagram Copy Generator v2.1
 
 ## Purpose
 
-Generate Instagram carousels that are "difficiles de ignorar" (impossible to ignore) by integrating psychological profiling, proven viral hook formulas, strategic narrative patterns, 11-element validation, and flexible export options. This SKILL transforms any content (transcriptions, articles, emails, summaries) into high-converting carousel copy that drives engagement, saves, and shares.
+Generate Instagram carousels that are "difíciles de ignorar" (impossible to ignore) by integrating psychological profiling, proven viral hook formulas, strategic narrative patterns, a 10-angle variety system, 11-element validation, and flexible export options — including a structured JSON output that the app can render as a fully designed, exportable carousel. This SKILL transforms any content (transcriptions, articles, emails, summaries) into high-converting carousel copy that drives engagement, saves, and shares.
 
 Unlike generic carousel builders, this system:
 - Identifies psychological triggers specific to your audience
 - Applies 10 proven viral hook formulas (not generic "curiosity gaps")
 - Uses 3 execution styles matched to user profile (Coach → Negativo, Vendedor → Info Secreta, Creador → Controversial)
+- Varies each carousel in a batch across 10 narrative angles (same system used in `generador-de-historias`, for coherencia entre skills — ver Step 0.5)
 - Validates all 11 critical elements before delivery
-- Generates batches (5-10 carousels) with intelligent style distribution
-- Exports to DOCX (shareable with design teams), Notion (calendar automation), or both
+- Generates batches (5-10 carousels) with intelligent style + angle distribution
+- Exports as structured JSON (consumido directamente por la app para renderizar el carrusel visual), DOCX, Notion, or markdown
 
 ---
 
@@ -32,10 +33,11 @@ Unlike generic carousel builders, this system:
 
 **Optional Flags:**
 - `--style=Negativo|Info-Secreta|Controversial` → Force specific execution style
-- `--batch=5-10` → Generate 5 or 10 different carousels with style distribution
-- `--export=docx|notion|both` → Output format (default: markdown table)
+- `--angle=Emocional|Educativo|Provocativo|Social-Proof|FOMO|Curiosidad|Comparacion|Negativo|Simplificacion|Identidad` → Force specific narrative angle (ver Step 0.5)
+- `--batch=5-10` → Generate 5 or 10 different carousels with style + angle distribution
+- `--export=json|docx|notion|both` → Output format (default: json + markdown table juntos, ver Step 5)
 - `--include-visuals` → Add detailed visual direction for each slide
-- `--multiple-angles` → Generate 3-5 different narrative approaches
+- `--multiple-angles` → Generate one carousel per angle (ver Step 0.5), 3-5 by default
 - `--slides=7-12` → Override default 10-slide structure (rarely needed)
 
 ---
@@ -137,6 +139,32 @@ Before writing any carousel, identify why this content will stick in someone's b
 | Último día | Urgencia + coste de esperar |
 | Oferta premium | Autoridad + diferenciador + resultado |
 | Audiencia escéptica | Prueba + mecanismo único |
+
+### Selector de Ángulo Narrativo (para variedad en batch)
+
+Esto es lo que antes faltaba en esta skill: un sistema formal de ángulos narrativos para que un `--batch` no se sienta repetitivo, igual al que ya usa `generador-de-historias` (Step 6) — mismo framework, coherente entre skills hermanas (ver `BRAND_GUIDELINES_SHARED.md`).
+
+Estos 10 ángulos son la capa de **narrativa** del carrusel: se combinan con el **estilo** (Negativo/Info Secreta/Controversial) y la **fórmula de gancho** (Step 2). Un mismo estilo puede sonar completamente distinto según el ángulo elegido.
+
+| # | Ángulo | Qué hace en un carrusel | Motor viral típico |
+|---|--------|--------------------------|---------------------|
+| 1 | **Emocional** | Toca el dolor, el deseo o la transformación personal desde slide 1 | Impacto / Aspiración |
+| 2 | **Educativo** | Enseña el cómo/por qué con transparencia, datos o mecanismo | Educación |
+| 3 | **Provocativo** | Desafía una creencia común, postura contraria y audaz | Impacto |
+| 4 | **Social Proof** | Se construye alrededor de un resultado real, testimonio o antes/después | Aspiración |
+| 5 | **FOMO** | Acceso limitado, exclusividad, ventana de tiempo real | Impacto |
+| 6 | **Curiosidad Pura** | Secreto, lo que nadie dice, confesión que abre un loop | Educación |
+| 7 | **Comparación** | Vs. competencia, vs. no hacer nada, vs. el método antiguo | Impacto |
+| 8 | **Simplificación** | Descomplica algo que la audiencia cree difícil, fórmula simple | Educación |
+| 9 | **Identidad** | "Si tú eres [tipo de persona], esto es para ti" | Reflejo |
+| 10 | **Negativo** (como ángulo, no solo estilo) | Nombra el error común que está frenando a la audiencia | Impacto |
+
+**Regla de uso:**
+- Con `--angle=X` fuerzas el ángulo de un carrusel individual.
+- Con `--multiple-angles` generas 3-5 carruseles, uno por ángulo distinto (elige los más relevantes al contenido, no los 10 a la fuerza).
+- Con `--batch=5` o `--batch=10` la distribución de Step 7 ya asigna ángulo + estilo por carrusel — no se repite la misma combinación dos veces.
+
+**Tu contenido, ¿qué ángulo(s) activa mejor?** [Identificar 1-3 candidatos antes de escribir]
 
 ---
 
@@ -324,7 +352,49 @@ Carousels are structured according to your profile. Each style has a unique prog
 
 ## STEP 5: OUTPUT & FORMATTING
 
-Default output is a clean table:
+**Este es el paso que antes se quedaba corto: la skill pedía una tabla markdown y nada más — suficiente para leer, insuficiente para que la app renderice el carrusel visual (diseño, colores, export a PNG).** A partir de ahora el output tiene dos partes obligatorias, en este orden:
+
+### 5.1 — Bloque JSON (canónico, para la app)
+
+Siempre entrega primero un bloque ` ```json ` con esta forma exacta — es lo que el generador de contenido usa para renderizar el carrusel diseñado y exportarlo a imagen:
+
+```json
+{
+  "formato": "carrusel",
+  "estilo": "negativo | info-secreta | controversial",
+  "angulo": "emocional | educativo | provocativo | social-proof | fomo | curiosidad | comparacion | simplificacion | identidad | negativo",
+  "motor_viral": "aspiracion | educacion | impacto | reflejo",
+  "hook_formula": "nombre de la fórmula usada (Step 2)",
+  "slides": [
+    { "index": 1, "copy": "Texto exacto del slide 1 (máx 5 palabras)" },
+    { "index": 2, "copy": "Texto exacto del slide 2" },
+    { "index": 10, "copy": "Pregunta final" }
+  ],
+  "caption": "Caption completo, listo para publicar, con CTA",
+  "validacion": {
+    "gancho": true,
+    "patron_narrativo": true,
+    "objetivo_claro": true,
+    "contenido_relevante": true,
+    "emocion_activada": true,
+    "caption_estrategico": true,
+    "cta_pregunta": true,
+    "estructura_correcta": true,
+    "promesa_cumplida": true,
+    "coherencia_total": true,
+    "valor_real": true
+  }
+}
+```
+
+Reglas del bloque JSON:
+- `slides` debe tener exactamente el número de elementos definido en `--slides` (10 por defecto).
+- Todos los valores de `validacion` deben ser `true` antes de entregar — si alguno es `false`, reescribe ese elemento primero (ver Step 6).
+- No incluyas comentarios ni texto fuera de las comillas dentro del JSON — debe ser JSON válido y parseable.
+
+### 5.2 — Tabla markdown (lectura humana)
+
+Justo después del bloque JSON, repite el mismo contenido en formato tabla, para que la alumna pueda leerlo directamente sin depender del render de la app:
 
 | Slide | Copy |
 |-------|------|
@@ -332,6 +402,8 @@ Default output is a clean table:
 | 2 | [Context/opening] |
 | 3-9 | [Development slides] |
 | 10 | [Question for comments] |
+
+**Caption:** [texto del caption]
 
 ---
 
@@ -393,54 +465,66 @@ PASS: All 11 elements ✓ Ready to export
 ## STEP 7: BATCH GENERATION & EXPORT OPTIONS
 
 ### BATCH MODE
-Generate 5-10 complete carousels on the same topic with different approaches/styles.
+
+Genera 5-10 carruseles completos sobre el mismo tema, cada uno con una combinación **distinta de estilo + ángulo narrativo** (Step 0.5) para que el batch nunca se sienta repetitivo — el mismo criterio de variedad que usa `generador-de-historias`.
 
 **`--batch=5`**
-- 5 carousels, distributed intelligently:
-  - 1 × Info Secreta (education/revelation angle)
-  - 1 ×  Negativo (error/correction angle)
-  - 1 × Controversial (challenge belief angle)
-  - 2 × variations of the strongest approach
 
-**`--batch=10`**
-- 10 carousels, distributed 40/35/25:
-  - 4 × Info Secreta (40%—highest engagement/saves)
-  - 3.5 → 4 × Negativo (35%—strong transformation appeal)
-  - 2.5 → 2 × Controversial (25%—differentiation)
+| # | Estilo | Ángulo |
+|---|--------|--------|
+| 1 | Info Secreta | Educativo |
+| 2 | Negativo | Emocional |
+| 3 | Controversial | Provocativo |
+| 4 | (estilo más fuerte del batch) | Social Proof |
+| 5 | (estilo más fuerte del batch) | Curiosidad Pura |
 
-Each carousel has a distinct:
-- Opening hook (different formula from the 10)
-- Narrative pattern (varied to prevent repetition)
-- Emotional emphasis (some pain-heavy, some desire-heavy)
-- Caption & CTA (tailored to the angle)
+**`--batch=10`** (distribución 40% Info Secreta / 35% Negativo / 25% Controversial, cruzada con 10 ángulos sin repetir ninguno):
+
+| # | Estilo | Ángulo |
+|---|--------|--------|
+| 1 | Info Secreta | Educativo |
+| 2 | Info Secreta | Curiosidad Pura |
+| 3 | Info Secreta | Simplificación |
+| 4 | Info Secreta | Comparación |
+| 5 | Negativo | Emocional |
+| 6 | Negativo | Negativo (ángulo) |
+| 7 | Negativo | FOMO |
+| 8 | Negativo | Identidad |
+| 9 | Controversial | Provocativo |
+| 10 | Controversial | Social Proof |
+
+Cada carrusel del batch tiene, además de estilo + ángulo distintos:
+- Opening hook (fórmula diferente de las 20 del Step 2)
+- Narrative pattern variado (para prevenir repetición)
+- Emotional emphasis distinto (algunos pain-heavy, algunos desire-heavy)
+- Caption & CTA propios de ese ángulo
+
+**Check de variedad obligatorio antes de entregar un batch:**
+- ¿Ningún carrusel repite la combinación estilo+ángulo?
+- ¿Ningún hook formula se repite dos veces seguidas?
+- ¿Hay al menos 3 ángulos distintos representados?
 
 ---
 
 ### EXPORT OPTIONS
 
-**Default: `--export=markdown`**
-```
-| Slide | Copy |
-|-------|------|
-| 1 | Hook |
-| ... | ... |
-```
+**Default: `--export=json` (ver Step 5.1)**
+El bloque JSON de Step 5.1 + la tabla markdown de Step 5.2 se entregan siempre, sin necesidad de flag. Es el formato que la app usa para renderizar el carrusel diseñado (paleta de marca, tipografía, barra de progreso) y exportarlo a PNG 1080×1350 — ver `carousel-design.ts` / `export-carousel.ts` en el repo.
 
 **`--export=docx`**
 - Individual .docx files per carousel
-- Naming: `[Topic]_Carousel-[Number]_[Style].docx`
+- Naming: `[Topic]_Carousel-[Number]_[Style]_[Angle].docx`
 - Each file includes:
   - Carousel table (Slide | Copy)
   - Caption (if generated)
   - 11-element validation checklist
   - Notes for designer (visual direction if requested)
-  - Performance tracking fields (hook, style, narrative, motor viral)
+  - Performance tracking fields (hook, style, angle, narrative, motor viral)
 
 **`--export=notion`**
 - Creates Notion database: `"[Topic] — Carousel Calendar"`
 - One page per carousel
-- Properties: Slide, Copy, Style, Hook Formula, Narrative Pattern, Motor Viral, Caption, CTA, Validation Status
-- Ready to assign dates and schedule posting
+- Properties: Slide, Copy, Style, Angle, Hook Formula, Narrative Pattern, Motor Viral, Caption, CTA, Validation Status
 
 **`--export=both`**
 - DOCX files (for design teams)
@@ -473,11 +557,12 @@ Before delivery, the carousel must:
 8. ✓ Copy is specific to audience profile (not generic)
 9. ✓ Tone is direct, no corporate speak, no filler
 10. ✓ Progression is logical (each slide pushes to next)
-11. ✓ Batch distribution is correct if `--batch` flag used (40/35/25 or 1/1/1/2)
-12. ✓ All 10 carousels in batch have different hooks (no repetition)
+11. ✓ Batch distribution is correct if `--batch` flag used (style + angle matrix, no repeated combination)
+12. ✓ All carousels in a batch have different hooks AND different angles (no repetition)
 13. ✓ Caption reinforces gancho and has strategic CTA
 14. ✓ Visual directions (if included) are specific and emotional, not generic
-15. ✓ Export format matches request (DOCX, Notion, both, markdown)
+15. ✓ Output starts with a valid, parseable JSON block (Step 5.1) followed by the markdown table (Step 5.2)
+16. ✓ Export format matches request (JSON default, DOCX, Notion, both)
 
 ---
 
@@ -492,21 +577,22 @@ User: "Aquí va una transcripción de un video sobre por qué los vendedores no 
 Me: [Psychological analysis in background]
 → Motor: Impacto (atacando error caro)
 → Estilo: Negativo (coach selling transformation)
+→ Ángulo: Emocional
 → Emoción: Miedo a seguir perdiendo + esperanza de cambio
 
-[Output: 10-slide carousel, table format, validated ✓]
+[Output: bloque JSON + tabla de 10 slides, validado ✓]
 ```
 
 ### Example 2: Batch Generation
 ```
-User: "--batch=10 --export=notion --style=mixed"
+User: "--batch=10 --export=notion"
 
 Output:
 - 10 carousels on the topic
-- 4 Info Secreta, 4 Negativo, 2 Controversial
+- 4 Info Secreta, 4 Negativo, 2 Controversial — cruzados con 10 ángulos distintos (ver Step 7)
 - All validated ✓
 - Notion database created with scheduling structure
-- Each carousel has different hook + angle
+- Each carousel has different hook + estilo + ángulo
 ```
 
 ### Example 3: Export for Design Team
@@ -516,22 +602,22 @@ User: "--export=docx --include-visuals"
 Output:
 - Individual .docx files per carousel
 - Each includes carousel table + caption + visual directions
-- File names: "[Topic]_Carousel-1_Negativo.docx", etc.
+- File names: "[Topic]_Carousel-1_Negativo_Emocional.docx", etc.
 - Ready to hand to designer team
 ```
 
 ### Example 4: Multiple Angles
 ```
-User: "--multiple-angles" (generates 3-5 different approaches)
+User: "--multiple-angles" (genera un carrusel por cada ángulo elegido, 3-5 por defecto)
 
-Output:
+Output (usando el Selector de Ángulo Narrativo del Step 0.5):
 - Carousel 1: Emocional (heavy on pain/identification)
 - Carousel 2: Educativo (heavy on revelation/authority)
-- Carousel 3: Provocador (heavy on challenge/controversy)
-- Carousel 4: Storytelling (heavy on narrative/proof)
-- Carousel 5: Ventas (heavy on transformation/result)
+- Carousel 3: Provocativo (heavy on challenge/controversy)
+- Carousel 4: Social Proof (heavy on testimonio/resultado real)
+- Carousel 5: Curiosidad Pura (heavy on secreto/loop abierto)
 
-[All 5 carousels fully validated, different hooks, different progressions]
+[All 5 carousels fully validated, different hooks, different angles, JSON + tabla cada uno]
 ```
 
 ---
@@ -544,6 +630,7 @@ After you publish each carousel, collect:
 |------|-------------|
 | **Fórmula Hook** | Which of the 10 formulas was used |
 | **Estilo** | Negativo / Info Secreta / Controversial |
+| **Ángulo** | Emocional / Educativo / Provocativo / Social Proof / FOMO / Curiosidad Pura / Comparación / Simplificación / Identidad / Negativo |
 | **Patrón Narrativo** | Contraste / Error / Punto de Vista / Confesión / Hábito / Lista |
 | **Motor Viral** | Aspiración / Educación / Impacto / Reflejo |
 | **Guardados** | Saves at 7 days |
@@ -553,7 +640,7 @@ After you publish each carousel, collect:
 
 Use this data to:
 - See which hook formulas work best for your audience
-- Optimize style distribution for future batches
+- Optimize style + angle distribution for future batches
 - Identify which narrative patterns engage most
 - Adjust emotional emphasis based on performance
 
@@ -572,6 +659,18 @@ Use this data to:
 8. **Resultado** → Before/after proof
 9. **1 Minuto** → Secret revealed, authority
 10. **La Única Cosa** → One hidden variable changes everything
+
+### 10 Ángulos Narrativos (Quick Reference — ver Step 0.5)
+1. **Emocional** → Dolor, deseo, transformación personal
+2. **Educativo** → Cómo/por qué, transparencia, mecanismo
+3. **Provocativo** → Desafía una creencia, postura contraria
+4. **Social Proof** → Resultado real, testimonio, antes/después
+5. **FOMO** → Acceso limitado, exclusividad, ventana real
+6. **Curiosidad Pura** → Secreto, lo que nadie dice
+7. **Comparación** → Vs. competencia, vs. no hacer nada
+8. **Simplificación** → Descomplica lo que parece difícil
+9. **Identidad** → "Si tú eres [tipo de persona]..."
+10. **Negativo** → Nombra el error común que frena
 
 ### 6 Narrative Patterns (Quick Reference)
 - **Contraste:** Belief vs Reality, Before vs After
@@ -613,11 +712,13 @@ Carousels generated by this SKILL maintain:
 
 4. **Validation matters.** A carousel that passes all 11 elements converts better, generates more engagement, and builds authority. Don't ship without it.
 
-5. **Performance data is feedback.** Track which formulas, styles, and patterns work. Use that to inform your next batches.
+5. **Performance data is feedback.** Track which formulas, styles, and angles work. Use that to inform your next batches.
 
 6. **Carousel ≠ Summary.** You're not summarizing content. You're creating a standalone experience that makes people *think, feel, and act*. If it sounds like a cliff notes version of the original, you've missed the point.
 
+7. **JSON first, always.** El bloque JSON de Step 5.1 no es opcional ni decorativo — es lo que permite que la app convierta este copy en el carrusel visual final. Sin JSON válido, el carrusel se queda en texto plano.
+
 ---
 
-**Status:** v2.0 — B-Roll integrated, 11-element validation, batch & export ready  
-**Last updated:** 2026-05-04
+**Status:** v2.1 — JSON export estructurado (Step 5), sistema de 10 ángulos narrativos para batch (Step 0.5 / Step 7), coherente con `generador-de-historias`
+**Last updated:** 2026-07-13
