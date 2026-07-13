@@ -7,6 +7,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { generarContenido } from "@/lib/api/generate.functions";
 import { useSupabaseAuthReady } from "@/hooks/use-supabase-auth-ready";
 import { CarouselPreview } from "@/components/CarouselPreview";
+import type { BrandId } from "@/lib/design/brands";
 
 export const Route = createFileRoute("/_authenticated/generador")({
   head: () => ({
@@ -18,9 +19,10 @@ export const Route = createFileRoute("/_authenticated/generador")({
   component: GeneradorPage,
 });
 
-type Formato = "carrusel" | "reel" | "post" | "stories" | "venta";
+type Formato = "carrusel" | "reel" | "post" | "stories" | "venta" | "email";
 type Estilo = "negativo" | "info-secreta" | "controversial";
 type Motor = "aspiracion" | "educacion" | "impacto" | "reflejo";
+type AlterEgo = "la-virgo" | "la-procrastinadora" | "la-musa" | "la-loca-del-cono" | "la-bruji";
 
 const FORMATOS: { id: Formato; emoji: string; titulo: string; sub: string }[] = [
   { id: "carrusel", emoji: "📊", titulo: "Carrusel", sub: "10 slides posicionados + caption" },
@@ -28,6 +30,15 @@ const FORMATOS: { id: Formato; emoji: string; titulo: string; sub: string }[] = 
   { id: "post", emoji: "📝", titulo: "Post / Caption", sub: "Copy para feed" },
   { id: "stories", emoji: "📱", titulo: "Stories", sub: "Secuencia 4–8 pantallas" },
   { id: "venta", emoji: "💰", titulo: "Venta Sutil", sub: "Sin precio, el cliente inicia" },
+  { id: "email", emoji: "✉️", titulo: "Email", sub: "Estructura de 8 partes + alter ego" },
+];
+
+// Vida Emprendedora es la marca "alumnas" (gated). RRSS y Keles & Reichel son
+// de uso privado — sin gate de alumnas — pensadas para ti/tu equipo.
+const MARCAS: { id: BrandId; emoji: string; titulo: string; sub: string }[] = [
+  { id: "vida-emprendedora", emoji: "🌷", titulo: "Vida Emprendedora", sub: "Contenido para alumnas" },
+  { id: "rrss", emoji: "📲", titulo: "RRSS sin Complicaciones", sub: "Vender en RRSS sin Complicaciones" },
+  { id: "kr", emoji: "🎙️", titulo: "Keles & Reichel", sub: "Voz en plural, firma con beso" },
 ];
 
 const ESTILOS: { id: Estilo; emoji: string; titulo: string; sub: string }[] = [
@@ -43,6 +54,14 @@ const MOTORES: { id: Motor; emoji: string; titulo: string; sub: string }[] = [
   { id: "reflejo", emoji: "💧", titulo: "Reflejo", sub: '"Esto soy yo"' },
 ];
 
+const ALTER_EGOS: { id: AlterEgo; titulo: string }[] = [
+  { id: "la-virgo", titulo: "La Virgo" },
+  { id: "la-procrastinadora", titulo: "La Procrastinadora" },
+  { id: "la-musa", titulo: "La Musa" },
+  { id: "la-loca-del-cono", titulo: "La Loca del Coño" },
+  { id: "la-bruji", titulo: "La Bruji" },
+];
+
 export default function GeneradorPage() {
   const navigate = useNavigate();
   const generar = useServerFn(generarContenido);
@@ -52,8 +71,10 @@ export default function GeneradorPage() {
   const [profileReady, setProfileReady] = useState(false);
 
   const [formato, setFormato] = useState<Formato>("carrusel");
+  const [marca, setMarca] = useState<BrandId>("vida-emprendedora");
   const [estilo, setEstilo] = useState<Estilo>("negativo");
   const [motor, setMotor] = useState<Motor>("aspiracion");
+  const [alterEgo, setAlterEgo] = useState<AlterEgo>("la-virgo");
   const [tema, setTema] = useState("");
 
   const [loading, setLoading] = useState(false);
@@ -95,7 +116,16 @@ export default function GeneradorPage() {
     setOutput(null);
     setError(null);
     try {
-      const res = await generar({ data: { formato, estilo, motor, tema: tema.trim() } });
+      const res = await generar({
+        data: {
+          formato,
+          estilo,
+          motor,
+          marca,
+          alterEgo: formato === "email" ? alterEgo : undefined,
+          tema: tema.trim(),
+        },
+      });
       setOutput(res.contenido);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Algo salió mal. Vuelve a intentarlo.");
@@ -148,8 +178,24 @@ export default function GeneradorPage() {
         </div>
 
         <form onSubmit={handleGenerate} className="space-y-6">
-          {/* 1. Formato */}
-          <Section label="1. ¿Qué formato necesitas?">
+          {/* 1. Marca */}
+          <Section label="1. ¿Para qué marca?">
+            <div className="grid sm:grid-cols-3 gap-3">
+              {MARCAS.map((m) => (
+                <OptionCard
+                  key={m.id}
+                  selected={marca === m.id}
+                  onClick={() => setMarca(m.id)}
+                  emoji={m.emoji}
+                  titulo={m.titulo}
+                  sub={m.sub}
+                />
+              ))}
+            </div>
+          </Section>
+
+          {/* 2. Formato */}
+          <Section label="2. ¿Qué formato necesitas?">
             <div className="grid sm:grid-cols-3 gap-3">
               {FORMATOS.map((f) => (
                 <OptionCard
@@ -164,8 +210,8 @@ export default function GeneradorPage() {
             </div>
           </Section>
 
-          {/* 2. Estilo */}
-          <Section label="2. ¿Qué estilo de ejecución?">
+          {/* 3. Estilo */}
+          <Section label="3. ¿Qué estilo de ejecución?">
             <div className="grid sm:grid-cols-3 gap-3">
               {ESTILOS.map((e) => (
                 <OptionCard
@@ -180,8 +226,8 @@ export default function GeneradorPage() {
             </div>
           </Section>
 
-          {/* 3. Motor viral */}
-          <Section label="3. ¿Qué motor viral activas?">
+          {/* 4. Motor viral */}
+          <Section label="4. ¿Qué motor viral activas?">
             <div className="grid sm:grid-cols-2 gap-3">
               {MOTORES.map((m) => (
                 <OptionCard
@@ -196,8 +242,26 @@ export default function GeneradorPage() {
             </div>
           </Section>
 
-          {/* 4. Tema */}
-          <Section label="4. Tema o texto de entrada">
+          {/* 4.5 Alter ego — solo para Email */}
+          {formato === "email" && (
+            <Section label="Alter ego para este email">
+              <div className="grid sm:grid-cols-3 gap-3">
+                {ALTER_EGOS.map((a) => (
+                  <OptionCard
+                    key={a.id}
+                    selected={alterEgo === a.id}
+                    onClick={() => setAlterEgo(a.id)}
+                    emoji="🎭"
+                    titulo={a.titulo}
+                    sub=""
+                  />
+                ))}
+              </div>
+            </Section>
+          )}
+
+          {/* 5. Tema */}
+          <Section label="5. Tema o texto de entrada">
             <textarea
               value={tema}
               onChange={(ev) => setTema(ev.target.value)}
@@ -225,7 +289,7 @@ export default function GeneradorPage() {
 
         {output && formato === "carrusel" && (
           <div className="mt-8">
-            <CarouselPreview rawOutput={output} />
+            <CarouselPreview rawOutput={output} brandId={marca} />
           </div>
         )}
 
@@ -284,7 +348,7 @@ function OptionCard({
     >
       <div className="text-xl mb-2">{emoji}</div>
       <div className="font-semibold text-foreground text-sm leading-tight">{titulo}</div>
-      <div className="text-xs text-muted-foreground mt-1 leading-snug">{sub}</div>
+      {sub && <div className="text-xs text-muted-foreground mt-1 leading-snug">{sub}</div>}
     </button>
   );
 }
