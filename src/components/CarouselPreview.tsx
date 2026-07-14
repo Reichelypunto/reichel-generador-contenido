@@ -26,7 +26,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import JSZip from "jszip";
 import { parseCarouselOutput } from "@/lib/design/parse-carousel-output";
-import { getBrandTokens, FONTS, type BrandId } from "@/lib/design/brands";
+import { getBrandTokens, type BrandId } from "@/lib/design/brands";
 import logoAsset from "../assets/vida-emprendedora-logo.png.asset.json";
 
 interface CarouselPreviewProps {
@@ -58,13 +58,16 @@ function renumber(slides: EditableSlide[]): EditableSlide[] {
 }
 
 /** Tamaño de letra automático — evita que un slide con mucho texto se desborde. */
-function fontSizeFor(copy: string, isFirst: boolean): number {
-  const base = isFirst ? 30 : 24;
+function fontSizeFor(copy: string, isFirst: boolean, brandId: BrandId): number {
+  // Vida Emprendedora usa una escala con más contraste (titular grande de
+  // verdad en el hook, cuerpo más pequeño) en vez de la escala plana anterior.
+  const base = brandId === "vida-emprendedora" ? (isFirst ? 40 : 22) : (isFirst ? 30 : 24);
+  const shrinkMax = brandId === "vida-emprendedora" ? 6 : 9;
   const len = copy.length;
   if (len <= 60) return base;
   if (len <= 110) return base - 3;
   if (len <= 160) return base - 6;
-  return Math.max(base - 9, 15);
+  return Math.max(base - shrinkMax, 15);
 }
 
 export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: CarouselPreviewProps) {
@@ -102,7 +105,10 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
     if (idx === 0) return { css: brand.LIGHT_BG, isLight: true, isGradient: false };
     if (idx === total - 1) return { css: gradient, isLight: false, isGradient: true };
     const isLight = idx % 2 === 0;
-    return { css: isLight ? brand.LIGHT_BG : brand.DARK_BG, isLight, isGradient: false };
+    // Alterna entre los dos neutros claros de la marca para que la serie no
+    // repita siempre el mismo tono en cada slide claro.
+    const lightTone = idx % 4 === 0 ? brand.LIGHT_BG : brand.LIGHT_BG_ALT;
+    return { css: isLight ? lightTone : brand.DARK_BG, isLight, isGradient: false };
   }
 
   function updateCopy(idx: number, value: string) {
@@ -201,12 +207,12 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
           ) : (
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
-              style={{ background: brand.PRIMARY, fontFamily: FONTS.heading }}
+              style={{ background: brand.PRIMARY, fontFamily: brand.heading }}
             >
               {brand.name.charAt(0)}
             </div>
           )}
-          <span className="text-[13px] font-medium truncate">{brand.handle ?? brand.name}</span>
+          <span className="text-[13px] font-medium truncate" style={{ fontFamily: brand.body }}>{brand.handle ?? brand.name}</span>
         </div>
 
         <div style={{ width: SLIDE_W, height: SLIDE_H, overflow: "hidden", position: "relative" }}>
@@ -216,7 +222,7 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
               width: SLIDE_W * total,
               height: SLIDE_H,
               transform: `translateX(-${current * SLIDE_W}px)`,
-              transition: "transform 0.3s ease",
+              transition: "transform 0.45s cubic-bezier(0.22, 1, 0.36, 1)",
             }}
           >
             {slides.map((slide, idx) => {
@@ -225,7 +231,11 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
               const isLast = idx === total - 1;
               const textColor = bg.isLight ? brand.DARK_BG : "#fff";
               const tagColor = bg.isGradient ? "rgba(255,255,255,0.6)" : bg.isLight ? brand.PRIMARY : brand.LIGHT;
-              const size = fontSizeFor(slide.copy, isFirst);
+              const size = fontSizeFor(slide.copy, isFirst, brandId);
+              // Vida Emprendedora alterna el anclaje del texto (abajo / arriba)
+              // en los slides intermedios para no repetir siempre "todo pegado
+              // abajo" — el resto de marcas mantiene el anclaje original.
+              const altAnchor = !isFirst && !isLast && brandId === "vida-emprendedora" && idx % 2 === 0;
 
               return (
                 <div
@@ -241,8 +251,8 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
                     position: "relative",
                     display: "flex",
                     flexDirection: "column",
-                    justifyContent: isFirst || isLast ? "center" : "flex-end",
-                    padding: "0 36px 52px",
+                    justifyContent: isFirst || isLast ? "center" : altAnchor ? "flex-start" : "flex-end",
+                    padding: altAnchor ? "64px 36px 0" : "0 36px 52px",
                     boxSizing: "border-box",
                     overflow: "hidden",
                   }}
@@ -267,20 +277,20 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
                             display: "flex",
                             alignItems: "center",
                             justifyContent: "center",
-                            fontFamily: FONTS.heading,
+                            fontFamily: brand.heading,
                             fontSize: 16,
                           }}
                         >
                           {brand.name.charAt(0)}
                         </div>
                       )}
-                      <span style={{ fontFamily: FONTS.body, fontSize: 12, fontWeight: 500, color: textColor }}>{brand.name}</span>
+                      <span style={{ fontFamily: brand.body, fontSize: 12, fontWeight: 500, color: textColor }}>{brand.name}</span>
                     </div>
                   )}
 
                   <span
                     style={{
-                      fontFamily: FONTS.body,
+                      fontFamily: brand.body,
                       fontSize: 10,
                       fontWeight: 600,
                       letterSpacing: 2,
@@ -297,7 +307,7 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
                       value={slide.copy}
                       onChange={(e) => updateCopy(idx, e.target.value)}
                       style={{
-                        fontFamily: FONTS.heading,
+                        fontFamily: brand.heading,
                         fontWeight: isFirst ? 600 : 500,
                         fontSize: size,
                         lineHeight: 1.25,
@@ -314,7 +324,7 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
                   ) : (
                     <p
                       style={{
-                        fontFamily: FONTS.heading,
+                        fontFamily: brand.heading,
                         fontWeight: isFirst ? 600 : 500,
                         fontSize: size,
                         lineHeight: 1.25,
@@ -328,14 +338,34 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
                     </p>
                   )}
 
-                  <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px 28px 20px", display: "flex", alignItems: "center", gap: 10 }}>
-                    <div style={{ flex: 1, height: 3, background: bg.isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)", borderRadius: 2, overflow: "hidden" }}>
-                      <div style={{ height: "100%", width: `${((idx + 1) / total) * 100}%`, background: bg.isLight ? brand.PRIMARY : "#fff", borderRadius: 2 }} />
+                  {brand.counterStyle === "numeral" ? (
+                    // Contador tipográfico en la esquina — evita el típico
+                    // progress-bar de plantilla que se ve en todos los
+                    // carruseles hechos con IA.
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 36,
+                        right: 36,
+                        fontFamily: brand.heading,
+                        fontSize: 15,
+                        fontWeight: 600,
+                        letterSpacing: 0.5,
+                        color: bg.isGradient ? "rgba(255,255,255,0.55)" : bg.isLight ? "rgba(57,46,46,0.28)" : "rgba(255,255,255,0.35)",
+                      }}
+                    >
+                      {String(idx + 1).padStart(2, "0")} / {String(total).padStart(2, "0")}
                     </div>
-                    <span style={{ fontFamily: FONTS.body, fontSize: 11, color: bg.isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.4)" }}>
-                      {idx + 1}/{total}
-                    </span>
-                  </div>
+                  ) : (
+                    <div style={{ position: "absolute", bottom: 0, left: 0, right: 0, padding: "16px 28px 20px", display: "flex", alignItems: "center", gap: 10 }}>
+                      <div style={{ flex: 1, height: 3, background: bg.isLight ? "rgba(0,0,0,0.08)" : "rgba(255,255,255,0.12)", borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{ height: "100%", width: `${((idx + 1) / total) * 100}%`, background: bg.isLight ? brand.PRIMARY : "#fff", borderRadius: 2 }} />
+                      </div>
+                      <span style={{ fontFamily: brand.body, fontSize: 11, color: bg.isLight ? "rgba(0,0,0,0.3)" : "rgba(255,255,255,0.4)" }}>
+                        {idx + 1}/{total}
+                      </span>
+                    </div>
+                  )}
 
                   {!isLast && (
                     <div
