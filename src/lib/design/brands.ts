@@ -56,10 +56,10 @@ export const BRAND_REGISTRY: Record<BrandId, BrandTokens> = {
     LIGHT_BG_ALT: "#f4f4f2",
     LIGHT_BORDER: "#e9dcc0",
     DARK_BG: "#392e2e",
-    // Antic Didone es del brandboard (Google Fonts, gratis). Fraunces es un
-    // sustituto temporal de "Romana Bold" — Romana no está en Google Fonts
-    // y no es legal descargarla de sitios de "fuentes gratis" de terceros.
-    // Si Reichel tiene el archivo con licencia, se sustituye por el real.
+    // Antic Didone es del brandboard (Google Fonts, gratis). Fraunces se
+    // eligió como titular definitivo en vez de "Romana Bold" del brandboard
+    // original — Romana no está en Google Fonts y no era legal descargarla
+    // de sitios de "fuentes gratis" de terceros; Reichel confirmó Fraunces.
     heading: "'Fraunces', Georgia, serif",
     body: "'Antic Didone', Georgia, serif",
     counterStyle: "numeral",
