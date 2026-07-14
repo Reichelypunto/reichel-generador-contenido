@@ -26,7 +26,7 @@
  * Colócalo en: src/lib/design/brands.ts
  */
 
-export type BrandId = "vida-emprendedora" | "rrss" | "kr";
+export type BrandId = "reichelypunto" | "rrss" | "kr";
 export type CounterStyle = "bar" | "numeral";
 
 export interface BrandTokens {
@@ -53,10 +53,11 @@ export interface BrandTokens {
 }
 
 export const BRAND_REGISTRY: Record<BrandId, BrandTokens> = {
-  "vida-emprendedora": {
-    id: "vida-emprendedora",
-    // En Instagram Reichely no publica como "Vida Emprendedora" sino con su
-    // identidad personal — el lockup y la cabecera reflejan eso.
+  reichelypunto: {
+    id: "reichelypunto",
+    // Marca personal de Reichely en Instagram. No existe una marca ni
+    // escuela llamada "Vida Emprendedora" — ese id/nombre era un error
+    // (quedó de una versión anterior) y se ha retirado del todo.
     name: "Reichelypunto2.0",
     handle: "@reichelypunto2.0",
     signature: "Un abrazo,\nReichely",
@@ -102,7 +103,7 @@ export const BRAND_REGISTRY: Record<BrandId, BrandTokens> = {
     // Emprendedora, no una aproximación: PRIMARY #0e2e64, LIGHT #2a5298,
     // DARK #071b3d ya son, de por sí, tonal (oscuro→medio→claro dentro del
     // mismo azul), así que este degradado nunca tuvo el problema "turbio"
-    // que sí tenía vida-emprendedora.
+    // que sí tenía reichelypunto.
     PRIMARY: "#0e2e64",
     LIGHT: "#2a5298",
     DARK: "#071b3d",
@@ -125,7 +126,7 @@ export const FONTS = {
 } as const;
 
 export function getBrandTokens(brandId: BrandId | undefined): BrandTokens {
-  return BRAND_REGISTRY[brandId ?? "vida-emprendedora"];
+  return BRAND_REGISTRY[brandId ?? "reichelypunto"];
 }
 
 // ---------------------------------------------------------------------------

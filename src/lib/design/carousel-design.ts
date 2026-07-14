@@ -28,7 +28,7 @@ export interface CarouselSlideData {
 
 export interface CarouselBuildOptions {
   slides: CarouselSlideData[];
-  /** Qué marca aplicar (paleta, tipografía, nombre, handle). Default: vida-emprendedora */
+  /** Qué marca aplicar (paleta, tipografía, nombre, handle). Default: reichelypunto */
   brandId?: BrandId;
   backgroundOverride?: Record<number, "light" | "dark" | "gradient">;
   logoUrl?: string;
@@ -138,7 +138,7 @@ function renderSlide(
   // slides intermedios para romper la monotonía de "todo pegado abajo".
   let justify = isFirst || isLast ? "center" : "flex-end";
   let paddingTop = "";
-  if (!isFirst && !isLast && brand.id === "vida-emprendedora" && idx % 2 === 0) {
+  if (!isFirst && !isLast && brand.id === "reichelypunto" && idx % 2 === 0) {
     justify = "flex-start";
     paddingTop = "padding-top:64px;";
   }
@@ -147,7 +147,7 @@ function renderSlide(
     ? numeralCounter(idx, total, bg.isLight, bg.type === "gradient", brand)
     : progressBar(idx, total, bg.isLight, brand);
 
-  const fontSize = brand.id === "vida-emprendedora" ? (isFirst ? "40px" : "24px") : (isFirst ? "32px" : "26px");
+  const fontSize = brand.id === "reichelypunto" ? (isFirst ? "40px" : "24px") : (isFirst ? "32px" : "26px");
 
   return `<div class="slide" data-index="${idx}" style="position:relative;width:420px;height:525px;flex-shrink:0;background:${bg.css};display:flex;flex-direction:column;justify-content:${justify};${paddingTop}padding-left:36px;padding-right:36px;padding-bottom:52px;overflow:hidden;box-sizing:border-box;">
     ${isFirst ? `<div style="position:absolute;top:40px;left:36px;">${logoLockup(opts.logoUrl, brandName, brand)}</div>` : ""}
