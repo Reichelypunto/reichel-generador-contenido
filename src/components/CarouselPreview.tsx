@@ -1,16 +1,34 @@
 /**
  * CarouselPreview.tsx
  *
+ * v6 — id de marca corregido + watermark:
+ *
+ * - El id de marca "vida-emprendedora" no correspondía a nada real (no
+ *   existe esa escuela/marca) — se renombra a "reichelypunto", la marca
+ *   personal de Reichely. Ver brands.ts.
+ * - Watermark del logo/foto en TODAS las slides (confirmado por la
+ *   usuaria), a opacidad baja. Por ahora solo Reichelypunto tiene foto
+ *   real (hasRealLogo) — K&R necesitaría su propio archivo de logo para
+ *   tener el mismo watermark; con el círculo de iniciales actual no hay
+ *   imagen que usar como marca de agua.
+ *
+ * v5 — foto real y degradado corregido:
+ *
+ * - El logo ya no depende del asset de Lovable (reichelypunto-logo.png.
+ *   asset.json), que apuntaba a un placeholder — ahora usa REICHELY_AVATAR,
+ *   la foto de perfil real de Reichely incrustada en base64 en
+ *   ../assets/reichely-avatar.ts. Same-origin siempre, sin pasos manuales
+ *   de subida en el editor de Lovable.
+ * - El degradado de la última slide usa deriveGradientLight(brand.PRIMARY)
+ *   en vez de brand.LIGHT — antes mezclaba tres tonos sin relación entre sí
+ *   (marrón + magenta + azul), lo que daba el efecto "turbio" reportado.
+ *
  * v4 — cierre de la funcionalidad de edición y robustez visual:
  *
  * - Tamaño de letra automático según longitud del texto (ya no se
  *   desborda un slide si el copy es más largo de lo habitual).
  * - Edición estructural completa: añadir, eliminar y mover slides
  *   (antes solo se podía editar el texto).
- * - Logo real de Vida Emprendedora restaurado (ahora que los slides son
- *   nodos React normales y no un iframe, la imagen es same-origin y no
- *   hay riesgo de que el export falle por CORS). RRSS y Keles & Reichel
- *   no tienen logo — usan el círculo con inicial.
  * - Export a PNG 100% en el navegador (html-to-image + jszip), sin
  *   servidor ni Playwright.
  *
@@ -26,13 +44,13 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { toPng } from "html-to-image";
 import JSZip from "jszip";
 import { parseCarouselOutput } from "@/lib/design/parse-carousel-output";
-import { getBrandTokens, type BrandId } from "@/lib/design/brands";
-import logoAsset from "../assets/vida-emprendedora-logo.png.asset.json";
+import { getBrandTokens, deriveGradientLight, type BrandId } from "@/lib/design/brands";
+import { REICHELY_AVATAR } from "../assets/reichely-avatar";
 
 interface CarouselPreviewProps {
   /** El string tal cual devuelve generarContenido() */
   rawOutput: string;
-  /** Marca activa — determina paleta, tipografía y logo. Default: vida-emprendedora */
+  /** Marca activa — determina paleta, tipografía y logo. Default: reichelypunto */
   brandId?: BrandId;
 }
 
@@ -61,8 +79,8 @@ function renumber(slides: EditableSlide[]): EditableSlide[] {
 function fontSizeFor(copy: string, isFirst: boolean, brandId: BrandId): number {
   // Vida Emprendedora usa una escala con más contraste (titular grande de
   // verdad en el hook, cuerpo más pequeño) en vez de la escala plana anterior.
-  const base = brandId === "vida-emprendedora" ? (isFirst ? 40 : 22) : (isFirst ? 30 : 24);
-  const shrinkMax = brandId === "vida-emprendedora" ? 6 : 9;
+  const base = brandId === "reichelypunto" ? (isFirst ? 40 : 22) : (isFirst ? 30 : 24);
+  const shrinkMax = brandId === "reichelypunto" ? 6 : 9;
   const len = copy.length;
   if (len <= 60) return base;
   if (len <= 110) return base - 3;
@@ -70,9 +88,9 @@ function fontSizeFor(copy: string, isFirst: boolean, brandId: BrandId): number {
   return Math.max(base - shrinkMax, 15);
 }
 
-export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: CarouselPreviewProps) {
+export function CarouselPreview({ rawOutput, brandId = "reichelypunto" }: CarouselPreviewProps) {
   const brand = getBrandTokens(brandId);
-  const hasRealLogo = brandId === "vida-emprendedora";
+  const hasRealLogo = brandId === "reichelypunto";
   const parsed = useMemo(() => parseCarouselOutput(rawOutput), [rawOutput]);
 
   const [slides, setSlides] = useState<EditableSlide[]>(() => parsed.slides.map((s) => ({ id: makeId(), ...s })));
@@ -99,7 +117,10 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
   }
 
   const total = slides.length;
-  const gradient = `linear-gradient(165deg, ${brand.DARK} 0%, ${brand.PRIMARY} 55%, ${brand.LIGHT} 100%)`;
+  // Tercer tono derivado del PRIMARY (aclarado vía HSL), no brand.LIGHT —
+  // mezclar un color de marca sin relación con el PRIMARY es lo que producía
+  // el degradado "turbio" que se reportó. Ver brands.ts.
+  const gradient = `linear-gradient(165deg, ${brand.DARK} 0%, ${brand.PRIMARY} 55%, ${deriveGradientLight(brand.PRIMARY)} 100%)`;
 
   function bgFor(idx: number) {
     if (idx === 0) return { css: brand.LIGHT_BG, isLight: true, isGradient: false };
@@ -203,7 +224,7 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
       <div className="rounded-2xl overflow-hidden shadow-[var(--shadow-card)] border border-border" style={{ width: SLIDE_W }}>
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
           {hasRealLogo ? (
-            <img src={logoAsset.url} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" crossOrigin="anonymous" />
+            <img src={REICHELY_AVATAR} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" crossOrigin="anonymous" />
           ) : (
             <div
               className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
@@ -232,10 +253,10 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
               const textColor = bg.isLight ? brand.DARK_BG : "#fff";
               const tagColor = bg.isGradient ? "rgba(255,255,255,0.6)" : bg.isLight ? brand.PRIMARY : brand.LIGHT;
               const size = fontSizeFor(slide.copy, isFirst, brandId);
-              // Vida Emprendedora alterna el anclaje del texto (abajo / arriba)
+              // Reichelypunto alterna el anclaje del texto (abajo / arriba)
               // en los slides intermedios para no repetir siempre "todo pegado
               // abajo" — el resto de marcas mantiene el anclaje original.
-              const altAnchor = !isFirst && !isLast && brandId === "vida-emprendedora" && idx % 2 === 0;
+              const altAnchor = !isFirst && !isLast && brandId === "reichelypunto" && idx % 2 === 0;
 
               return (
                 <div
@@ -257,11 +278,37 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
                     overflow: "hidden",
                   }}
                 >
+                  {hasRealLogo && (
+                    // Watermark de marca en TODAS las slides, no solo hero/CTA
+                    // — confirmado explícitamente por la usuaria (se aparta a
+                    // propósito del spec original, que lo limitaba a un
+                    // subconjunto de slides). Opacidad baja para no competir
+                    // con el texto; pointerEvents:none para no interceptar el
+                    // swipe.
+                    <img
+                      src={REICHELY_AVATAR}
+                      alt=""
+                      aria-hidden="true"
+                      style={{
+                        position: "absolute",
+                        right: -60,
+                        bottom: -60,
+                        width: 260,
+                        height: 260,
+                        borderRadius: "50%",
+                        objectFit: "cover",
+                        opacity: bg.isGradient ? 0.08 : 0.05,
+                        filter: bg.isLight ? "none" : "grayscale(1) invert(1)",
+                        pointerEvents: "none",
+                        zIndex: 0,
+                      }}
+                    />
+                  )}
                   {isFirst && (
                     <div style={{ position: "absolute", top: 40, left: 36, display: "flex", alignItems: "center", gap: 10 }}>
                       {hasRealLogo ? (
                         <img
-                          src={logoAsset.url}
+                          src={REICHELY_AVATAR}
                           alt=""
                           crossOrigin="anonymous"
                           style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }}
