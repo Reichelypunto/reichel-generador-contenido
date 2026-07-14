@@ -2,7 +2,7 @@
 title: Brand Guidelines Compartidas — Sistema B-Roll + Carruseles
 description: Identidad, tono, voz, arquitectura psicológica consistente entre ambas IAs
 version: 1.0
-audience: Alumnas usando content-plan skill y carruseles GPT
+audience: Reichelypunto2.0 y Keles & Reichel — contenido propio de Reichely
 lastUpdated: 2026-05-04
 ---
 
@@ -330,7 +330,7 @@ Ambos sistemas generan 10 piezas con esta distribución: **40% Info Secreta / 35
 
 ## 10. SUPPORT RESOURCES
 
-Para alumnas usando ambos sistemas:
+Para quien use ambos sistemas (Reichelypunto2.0 y Keles & Reichel):
 
 - **Documentación Skill:** `/skills/carruseles/SKILL.md`
 - **Documentación GPT:** Dentro del GPT (instructions)
