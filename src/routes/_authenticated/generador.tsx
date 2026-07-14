@@ -1,7 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useServerFn } from "@tanstack/react-start";
-import logoAsset from "../../assets/vida-emprendedora-logo.png.asset.json";
 import perfilAsset from "../../assets/reichely-perfil.png.asset.json";
 import { supabase } from "@/integrations/supabase/client";
 import { generarContenido } from "@/lib/api/generate.functions";
@@ -12,7 +11,7 @@ import type { BrandId } from "@/lib/design/brands";
 export const Route = createFileRoute("/_authenticated/generador")({
   head: () => ({
     meta: [
-      { title: "Generador — Vida Emprendedora" },
+      { title: "Generador de contenido — Reichely" },
       { name: "description", content: "Crea contenido con tu voz, guiada por la metodología de Reichely." },
     ],
   }),
@@ -33,12 +32,16 @@ const FORMATOS: { id: Formato; emoji: string; titulo: string; sub: string }[] = 
   { id: "email", emoji: "✉️", titulo: "Email", sub: "Estructura de 8 partes + alter ego" },
 ];
 
-// Vida Emprendedora es la marca "alumnas" (gated). RRSS y Keles & Reichel son
-// de uso privado — sin gate de alumnas — pensadas para ti/tu equipo.
+// No existe una marca/escuela "Vida Emprendedora" con alumnas — eso era un
+// error que quedó de una versión anterior (confirmado por Reichely). Este
+// generador es el suyo propio, para el contenido que ella publica bajo dos
+// identidades: Reichelypunto2.0 (personal) y Keles & Reichel (conjunta).
+// "RRSS sin Complicaciones" es un tercer caso ya existente (marca de un
+// tercero, Maricarmen) que se mantiene tal cual estaba.
 const MARCAS: { id: BrandId; emoji: string; titulo: string; sub: string }[] = [
-  { id: "vida-emprendedora", emoji: "🌷", titulo: "Vida Emprendedora", sub: "Contenido para alumnas" },
+  { id: "reichelypunto", emoji: "🌷", titulo: "Reichelypunto2.0", sub: "Tu marca personal en Instagram" },
+  { id: "kr", emoji: "🎙️", titulo: "Keles & Reichel", sub: "Marca conjunta — voz en plural" },
   { id: "rrss", emoji: "📲", titulo: "RRSS sin Complicaciones", sub: "Vender en RRSS sin Complicaciones" },
-  { id: "kr", emoji: "🎙️", titulo: "Keles & Reichel", sub: "Voz en plural, firma con beso" },
 ];
 
 const ESTILOS: { id: Estilo; emoji: string; titulo: string; sub: string }[] = [
@@ -71,7 +74,7 @@ export default function GeneradorPage() {
   const [profileReady, setProfileReady] = useState(false);
 
   const [formato, setFormato] = useState<Formato>("carrusel");
-  const [marca, setMarca] = useState<BrandId>("vida-emprendedora");
+  const [marca, setMarca] = useState<BrandId>("reichelypunto");
   const [estilo, setEstilo] = useState<Estilo>("negativo");
   const [motor, setMotor] = useState<Motor>("aspiracion");
   const [alterEgo, setAlterEgo] = useState<AlterEgo>("la-virgo");
@@ -152,8 +155,7 @@ export default function GeneradorPage() {
       <header className="border-b border-border/60 bg-card/60 backdrop-blur-sm sticky top-0 z-10">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0">
-            <img src={logoAsset.url} alt="" className="w-8 h-8 object-contain shrink-0 mix-blend-multiply" />
-            <span className="text-[11px] sm:text-sm tracking-[0.15em] uppercase text-foreground/80 truncate">Vida Emprendedora</span>
+            <span className="text-[11px] sm:text-sm tracking-[0.15em] uppercase text-foreground/80 truncate">Generador de contenido</span>
           </div>
           <div className="flex items-center gap-3 shrink-0">
             <button
