@@ -13,7 +13,7 @@
  * Colócalo en: src/lib/design/carousel-design.ts
  */
 
-import { getBrandTokens, FONTS, type BrandId, type BrandTokens } from "./brands";
+import { getBrandTokens, deriveGradientLight, FONTS, type BrandId, type BrandTokens } from "./brands";
 
 // ---------------------------------------------------------------------------
 // 1. TIPOS
@@ -95,7 +95,10 @@ function bgFor(
   brand: BrandTokens,
   override?: BgType
 ): { type: BgType; css: string; isLight: boolean } {
-  const gradient = `linear-gradient(165deg, ${brand.DARK} 0%, ${brand.PRIMARY} 55%, ${brand.LIGHT} 100%)`;
+  // El tercer tono se deriva del PRIMARY (aclarado vía HSL) en vez de usar
+  // brand.LIGHT — mezclar un color de marca sin relación con el PRIMARY es
+  // lo que producía el degradado "turbio". Ver brands.ts para el porqué.
+  const gradient = `linear-gradient(165deg, ${brand.DARK} 0%, ${brand.PRIMARY} 55%, ${deriveGradientLight(brand.PRIMARY)} 100%)`;
   if (override) {
     return {
       type: override,
