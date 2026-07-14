@@ -49,10 +49,17 @@ const ALTER_EGO_LABEL: Record<string, string> = {
 };
 
 // ---------------------------------------------------------------------------
-// Voz de marca — Vida Emprendedora usa las brand guidelines completas
-// (alumnas, metodología de Reichely). RRSS y Keles & Reichel son de uso
-// privado y usan una voz de marca más simple, tomada del artefacto
-// "content-generator.tsx" (Claude.ai) que las originó.
+// Voz de marca.
+//
+// IMPORTANTE — corrección: este generador NO tiene una marca/escuela
+// llamada "Vida Emprendedora" con "alumnas". Eso no existe (confirmado por
+// la usuaria) — era un error que quedó de una versión anterior, mezclado
+// probablemente con contenido del OTRO repo (generador-contenido-alumnas,
+// ese sí para estudiantes). Aquí solo hay dos marcas reales bajo las que
+// Reichely publica contenido propio: Reichelypunto2.0 (personal) y
+// Keles & Reichel (K&R, marca conjunta). "rrss" (Vender en RRSS sin
+// Complicaciones / Maricarmen) es un tercer caso ya existente en el
+// artefacto original — se deja tal cual, no forma parte de esta corrección.
 // ---------------------------------------------------------------------------
 
 function brandVoiceBlock(marca: string): string {
@@ -87,7 +94,10 @@ REGLAS ABSOLUTAS:
 - Firma emails siempre: Keles & Reichel 💋
 - Enlace podcast siempre: Escúchalo aquí (hipervínculo)`;
   }
-  // vida-emprendedora (default) — brand guidelines completas de alumnas
+  // reichelypunto (default) — marca personal de Reichely. Usa el framework
+  // compartido de motores/hooks/estilos/validación (BRAND_GUIDELINES_SHARED.md);
+  // esa guía es metodología genérica de copywriting, no es exclusiva de
+  // ninguna escuela ni implica que exista una.
   return brandGuidelines;
 }
 
@@ -134,7 +144,7 @@ const InputSchema = z.object({
   formato: z.enum(["carrusel", "reel", "post", "stories", "venta", "email"]),
   estilo: z.enum(["negativo", "info-secreta", "controversial"]),
   motor: z.enum(["aspiracion", "educacion", "impacto", "reflejo"]),
-  marca: z.enum(["vida-emprendedora", "rrss", "kr"]).default("vida-emprendedora"),
+  marca: z.enum(["reichelypunto", "rrss", "kr"]).default("reichelypunto"),
   alterEgo: z.enum(["la-virgo", "la-procrastinadora", "la-musa", "la-loca-del-cono", "la-bruji"]).optional(),
   tema: z.string().min(3).max(4000),
 });
@@ -147,13 +157,13 @@ export const generarContenido = createServerFn({ method: "POST" })
       throw new Error("LOVABLE_API_KEY no configurada");
     }
 
-    const isVidaEmprendedora = data.marca === "vida-emprendedora";
+    const isReichelypunto = data.marca === "reichelypunto";
     const skill = data.formato === "email" ? buildEmailSkillPrompt(data.alterEgo) : SKILLS[data.formato];
     const voz = brandVoiceBlock(data.marca);
 
     const systemPrompt = `${
-      isVidaEmprendedora
-        ? "Eres una creadora de contenido experta entrenada para alumnas de Vida Emprendedora (escuela de Reichely Portales)."
+      isReichelypunto
+        ? "Eres una creadora de contenido experta escribiendo para Reichelypunto2.0 (@reichelypunto2.0), la marca personal de Reichely Portales en Instagram."
         : "Eres una creadora de contenido experta trabajando para el equipo de Reichely Portales."
     }
 
@@ -170,7 +180,7 @@ ${skill}
 - Motor viral: ${MOTOR_LABEL[data.motor]}
 - Entrega el contenido FINAL listo para publicar, sin meta-comentarios ni explicaciones.
 - Respeta exactamente la estructura definida en la skill (número de slides, formato de guion, etc.).
-${isVidaEmprendedora ? "- Voz cálida, cercana, de mujer a mujer. Nada de corporativo ni gurú." : ""}`;
+- Voz cálida, cercana, de mujer a mujer. Nada de corporativo ni gurú.`;
 
     const userPrompt = `TEMA / INSIGHT DE ENTRADA:\n\n${data.tema}\n\nGenera el contenido completo ahora.`;
 
