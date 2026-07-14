@@ -53,8 +53,16 @@ function progressBar(index: number, total: number, isLight: boolean, brand: Bran
     <div style="flex:1;height:3px;background:${track};border-radius:2px;overflow:hidden;">
       <div style="height:100%;width:${pct}%;background:${fill};border-radius:2px;"></div>
     </div>
-    <span style="font-family:${FONTS.body};font-size:11px;color:${label};font-weight:500;">${index + 1}/${total}</span>
+    <span style="font-family:${brand.body};font-size:11px;color:${label};font-weight:500;">${index + 1}/${total}</span>
   </div>`;
+}
+
+/** Contador tipográfico en la esquina — alternativa al progress-bar para marcas con counterStyle:"numeral". */
+function numeralCounter(index: number, total: number, isLight: boolean, isGradient: boolean, brand: BrandTokens): string {
+  const color = isGradient ? "rgba(255,255,255,0.55)" : isLight ? "rgba(57,46,46,0.28)" : "rgba(255,255,255,0.35)";
+  const n = String(index + 1).padStart(2, "0");
+  const t = String(total).padStart(2, "0");
+  return `<div style="position:absolute;top:36px;right:36px;font-family:${brand.heading};font-size:15px;font-weight:600;color:${color};letter-spacing:0.5px;z-index:10;">${n} / ${t}</div>`;
 }
 
 function swipeArrow(isLight: boolean): string {
@@ -70,10 +78,10 @@ function swipeArrow(isLight: boolean): string {
 function logoLockup(logoUrl: string | undefined, brandName: string, brand: BrandTokens): string {
   const icon = logoUrl
     ? `<img src="${logoUrl}" style="width:40px;height:40px;border-radius:50%;object-fit:cover;" />`
-    : `<div style="width:40px;height:40px;border-radius:50%;background:${brand.PRIMARY};display:flex;align-items:center;justify-content:center;color:#fff;font-family:${FONTS.heading};font-size:18px;">${brandName.charAt(0)}</div>`;
+    : `<div style="width:40px;height:40px;border-radius:50%;background:${brand.PRIMARY};display:flex;align-items:center;justify-content:center;color:#fff;font-family:${brand.heading};font-size:18px;">${brandName.charAt(0)}</div>`;
   return `<div style="display:flex;align-items:center;gap:12px;">
     ${icon}
-    <span style="font-family:${FONTS.body};font-size:13px;font-weight:600;letter-spacing:0.5px;">${brandName}</span>
+    <span style="font-family:${brand.body};font-size:13px;font-weight:600;letter-spacing:0.5px;">${brandName}</span>
   </div>`;
 }
 
@@ -98,7 +106,10 @@ function bgFor(
   if (index === 0) return { type: "light", css: brand.LIGHT_BG, isLight: true };
   if (index === total - 1) return { type: "gradient", css: gradient, isLight: false };
   const isLight = index % 2 === 0;
-  return { type: isLight ? "light" : "dark", css: isLight ? brand.LIGHT_BG : brand.DARK_BG, isLight };
+  // Alterna entre los dos neutros claros de la marca para que la serie de
+  // slides claros no repita siempre el mismo tono.
+  const lightTone = index % 4 === 0 ? brand.LIGHT_BG : brand.LIGHT_BG_ALT;
+  return { type: isLight ? "light" : "dark", css: isLight ? lightTone : brand.DARK_BG, isLight };
 }
 
 function escapeHtml(s: string): string {
@@ -118,14 +129,28 @@ function renderSlide(
   const bg = bgFor(idx, total, brand, override);
   const textColor = bg.isLight ? brand.DARK_BG : "#fff";
   const tagColor = bg.type === "gradient" ? "rgba(255,255,255,0.6)" : bg.isLight ? brand.PRIMARY : brand.LIGHT;
-  const justify = isFirst || isLast ? "center" : "flex-end";
   const brandName = opts.brandName ?? brand.name;
 
-  return `<div class="slide" data-index="${idx}" style="position:relative;width:420px;height:525px;flex-shrink:0;background:${bg.css};display:flex;flex-direction:column;justify-content:${justify};padding:0 36px 52px;overflow:hidden;box-sizing:border-box;">
+  // Vida Emprendedora alterna el anclaje del texto (abajo / arriba) en los
+  // slides intermedios para romper la monotonía de "todo pegado abajo".
+  let justify = isFirst || isLast ? "center" : "flex-end";
+  let paddingTop = "";
+  if (!isFirst && !isLast && brand.id === "vida-emprendedora" && idx % 2 === 0) {
+    justify = "flex-start";
+    paddingTop = "padding-top:64px;";
+  }
+
+  const counter = brand.counterStyle === "numeral"
+    ? numeralCounter(idx, total, bg.isLight, bg.type === "gradient", brand)
+    : progressBar(idx, total, bg.isLight, brand);
+
+  const fontSize = brand.id === "vida-emprendedora" ? (isFirst ? "40px" : "24px") : (isFirst ? "32px" : "26px");
+
+  return `<div class="slide" data-index="${idx}" style="position:relative;width:420px;height:525px;flex-shrink:0;background:${bg.css};display:flex;flex-direction:column;justify-content:${justify};${paddingTop}padding-left:36px;padding-right:36px;padding-bottom:52px;overflow:hidden;box-sizing:border-box;">
     ${isFirst ? `<div style="position:absolute;top:40px;left:36px;">${logoLockup(opts.logoUrl, brandName, brand)}</div>` : ""}
-    <span style="font-family:${FONTS.body};font-size:10px;font-weight:600;letter-spacing:2px;color:${tagColor};text-transform:uppercase;margin-bottom:16px;">${isLast ? "Conclusión" : isFirst ? "Empieza aquí" : `Slide ${slide.index}`}</span>
-    <p style="font-family:${FONTS.heading};font-weight:${isFirst ? 600 : 500};font-size:${isFirst ? "32px" : "26px"};line-height:1.15;letter-spacing:-0.4px;color:${textColor};margin:0;white-space:pre-wrap;">${escapeHtml(slide.copy)}</p>
-    ${progressBar(idx, total, bg.isLight, brand)}
+    <span style="font-family:${brand.body};font-size:10px;font-weight:600;letter-spacing:2px;color:${tagColor};text-transform:uppercase;margin-bottom:16px;">${isLast ? "Conclusión" : isFirst ? "Empieza aquí" : `Slide ${slide.index}`}</span>
+    <p style="font-family:${brand.heading};font-weight:${isFirst ? 600 : 500};font-size:${fontSize};line-height:1.15;letter-spacing:-0.4px;color:${textColor};margin:0;white-space:pre-wrap;">${escapeHtml(slide.copy)}</p>
+    ${counter}
     ${isLast ? "" : swipeArrow(bg.isLight)}
   </div>`;
 }
@@ -147,7 +172,7 @@ export function buildCarouselHtml(opts: CarouselBuildOptions): string {
 <link rel="stylesheet" href="${FONTS.googleFontsUrl}" />
 <style>
   * { box-sizing: border-box; }
-  body { margin:0; padding:40px; background:#efe6d2; display:flex; justify-content:center; font-family:${FONTS.body}; }
+  body { margin:0; padding:40px; background:#efe6d2; display:flex; justify-content:center; font-family:${brand.body}; }
   .ig-frame { width:420px; background:#fff; border-radius:16px; overflow:hidden; box-shadow:0 20px 60px rgba(0,0,0,0.15); }
   .ig-header { display:flex; align-items:center; gap:10px; padding:12px 16px; }
   .ig-header img { width:32px;height:32px;border-radius:50%; }
