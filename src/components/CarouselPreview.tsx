@@ -1,21 +1,23 @@
 /**
  * CarouselPreview.tsx
  *
- * v3 — completamente client-side. Ya no depende de un iframe estático ni
- * de un export server-side con Playwright (eso requería infraestructura
- * que no podíamos garantizar en el hosting de Lovable). Ahora:
+ * v4 — cierre de la funcionalidad de edición y robustez visual:
  *
- * 1. Los slides se renderizan como nodos React reales (no HTML en un
- *    iframe), así que se pueden EDITAR en el sitio: botón "Editar
- *    carrusel" convierte cada texto en un textarea editable, con el
- *    preview actualizándose en vivo.
- * 2. La exportación a PNG corre en el propio navegador con la librería
- *    "html-to-image" (pura JS, sin binarios nativos, sin servidor) —
- *    funciona igual en cualquier hosting. Un clic descarga las 10
- *    imágenes en un .zip a 1080×1350, listas para subir a Instagram.
+ * - Tamaño de letra automático según longitud del texto (ya no se
+ *   desborda un slide si el copy es más largo de lo habitual).
+ * - Edición estructural completa: añadir, eliminar y mover slides
+ *   (antes solo se podía editar el texto).
+ * - Logo real de Vida Emprendedora restaurado (ahora que los slides son
+ *   nodos React normales y no un iframe, la imagen es same-origin y no
+ *   hay riesgo de que el export falle por CORS). RRSS y Keles & Reichel
+ *   no tienen logo — usan el círculo con inicial.
+ * - Export a PNG 100% en el navegador (html-to-image + jszip), sin
+ *   servidor ni Playwright.
  *
- * Requiere en package.json: "html-to-image" y "jszip" (ver nota en el
- * informe de integración).
+ * Fuera de alcance a propósito (no es un "flequillo", es una feature
+ * distinta): fondos con foto en vez de color plano, que requeriría un
+ * flujo de subida de imágenes. Todo lo demás de la edición y el diseño
+ * de texto está cerrado en este archivo.
  *
  * Colócalo en: src/components/CarouselPreview.tsx
  */
@@ -25,23 +27,52 @@ import { toPng } from "html-to-image";
 import JSZip from "jszip";
 import { parseCarouselOutput } from "@/lib/design/parse-carousel-output";
 import { getBrandTokens, FONTS, type BrandId } from "@/lib/design/brands";
+import logoAsset from "../assets/vida-emprendedora-logo.png.asset.json";
 
 interface CarouselPreviewProps {
   /** El string tal cual devuelve generarContenido() */
   rawOutput: string;
-  /** Marca activa — determina paleta y tipografía. Default: vida-emprendedora */
+  /** Marca activa — determina paleta, tipografía y logo. Default: vida-emprendedora */
   brandId?: BrandId;
+}
+
+interface EditableSlide {
+  /** Id estable para React, independiente del número de slide mostrado */
+  id: string;
+  /** Número de slide mostrado (1-indexado, se recalcula tras añadir/mover/eliminar) */
+  index: number;
+  copy: string;
 }
 
 const SLIDE_W = 420;
 const SLIDE_H = 525;
 const EXPORT_SCALE = 1080 / SLIDE_W; // 2.5714... → salida real 1080x1350
+const MIN_SLIDES = 3;
+
+function makeId(): string {
+  return typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+}
+
+function renumber(slides: EditableSlide[]): EditableSlide[] {
+  return slides.map((s, i) => ({ ...s, index: i + 1 }));
+}
+
+/** Tamaño de letra automático — evita que un slide con mucho texto se desborde. */
+function fontSizeFor(copy: string, isFirst: boolean): number {
+  const base = isFirst ? 30 : 24;
+  const len = copy.length;
+  if (len <= 60) return base;
+  if (len <= 110) return base - 3;
+  if (len <= 160) return base - 6;
+  return Math.max(base - 9, 15);
+}
 
 export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: CarouselPreviewProps) {
   const brand = getBrandTokens(brandId);
+  const hasRealLogo = brandId === "vida-emprendedora";
   const parsed = useMemo(() => parseCarouselOutput(rawOutput), [rawOutput]);
 
-  const [slides, setSlides] = useState(parsed.slides);
+  const [slides, setSlides] = useState<EditableSlide[]>(() => parsed.slides.map((s) => ({ id: makeId(), ...s })));
   const [caption, setCaption] = useState(parsed.caption ?? "");
   const [editing, setEditing] = useState(false);
   const [current, setCurrent] = useState(0);
@@ -53,7 +84,7 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
   const refs = useRef<Array<HTMLDivElement | null>>([]);
 
   useEffect(() => {
-    setSlides(parsed.slides);
+    setSlides(parsed.slides.map((s) => ({ id: makeId(), ...s })));
     setCaption(parsed.caption ?? "");
     setCurrent(0);
   }, [parsed]);
@@ -76,6 +107,36 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
 
   function updateCopy(idx: number, value: string) {
     setSlides((prev) => prev.map((s, i) => (i === idx ? { ...s, copy: value } : s)));
+  }
+
+  function addSlideAfter(idx: number) {
+    setSlides((prev) => {
+      const next = [...prev];
+      next.splice(idx + 1, 0, { id: makeId(), index: 0, copy: "Nuevo slide — escribe aquí" });
+      return renumber(next);
+    });
+    setCurrent(idx + 1);
+    setEditing(true);
+  }
+
+  function removeSlide(idx: number) {
+    setSlides((prev) => {
+      if (prev.length <= MIN_SLIDES) return prev;
+      const next = prev.filter((_, i) => i !== idx);
+      return renumber(next);
+    });
+    setCurrent((c) => Math.max(0, Math.min(c, slides.length - 2)));
+  }
+
+  function moveSlide(idx: number, dir: -1 | 1) {
+    const j = idx + dir;
+    if (j < 0 || j >= slides.length) return;
+    setSlides((prev) => {
+      const next = [...prev];
+      [next[idx], next[j]] = [next[j], next[idx]];
+      return renumber(next);
+    });
+    setCurrent(j);
   }
 
   async function captureSlide(idx: number): Promise<string> {
@@ -135,12 +196,16 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
     <div className="flex flex-col items-center gap-4">
       <div className="rounded-2xl overflow-hidden shadow-[var(--shadow-card)] border border-border" style={{ width: SLIDE_W }}>
         <div className="flex items-center gap-2 px-4 py-3 border-b border-border">
-          <div
-            className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
-            style={{ background: brand.PRIMARY, fontFamily: FONTS.heading }}
-          >
-            {brand.name.charAt(0)}
-          </div>
+          {hasRealLogo ? (
+            <img src={logoAsset.url} alt="" className="w-7 h-7 rounded-full object-cover shrink-0" crossOrigin="anonymous" />
+          ) : (
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-semibold shrink-0"
+              style={{ background: brand.PRIMARY, fontFamily: FONTS.heading }}
+            >
+              {brand.name.charAt(0)}
+            </div>
+          )}
           <span className="text-[13px] font-medium truncate">{brand.handle ?? brand.name}</span>
         </div>
 
@@ -160,10 +225,11 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
               const isLast = idx === total - 1;
               const textColor = bg.isLight ? brand.DARK_BG : "#fff";
               const tagColor = bg.isGradient ? "rgba(255,255,255,0.6)" : bg.isLight ? brand.PRIMARY : brand.LIGHT;
+              const size = fontSizeFor(slide.copy, isFirst);
 
               return (
                 <div
-                  key={slide.index}
+                  key={slide.id}
                   ref={(el) => {
                     refs.current[idx] = el;
                   }}
@@ -183,22 +249,31 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
                 >
                   {isFirst && (
                     <div style={{ position: "absolute", top: 40, left: 36, display: "flex", alignItems: "center", gap: 10 }}>
-                      <div
-                        style={{
-                          width: 36,
-                          height: 36,
-                          borderRadius: "50%",
-                          background: brand.PRIMARY,
-                          color: "#fff",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          fontFamily: FONTS.heading,
-                          fontSize: 16,
-                        }}
-                      >
-                        {brand.name.charAt(0)}
-                      </div>
+                      {hasRealLogo ? (
+                        <img
+                          src={logoAsset.url}
+                          alt=""
+                          crossOrigin="anonymous"
+                          style={{ width: 36, height: 36, borderRadius: "50%", objectFit: "cover" }}
+                        />
+                      ) : (
+                        <div
+                          style={{
+                            width: 36,
+                            height: 36,
+                            borderRadius: "50%",
+                            background: brand.PRIMARY,
+                            color: "#fff",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontFamily: FONTS.heading,
+                            fontSize: 16,
+                          }}
+                        >
+                          {brand.name.charAt(0)}
+                        </div>
+                      )}
                       <span style={{ fontFamily: FONTS.body, fontSize: 12, fontWeight: 500, color: textColor }}>{brand.name}</span>
                     </div>
                   )}
@@ -224,7 +299,7 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
                       style={{
                         fontFamily: FONTS.heading,
                         fontWeight: isFirst ? 600 : 500,
-                        fontSize: isFirst ? 30 : 24,
+                        fontSize: size,
                         lineHeight: 1.25,
                         color: textColor,
                         background: "rgba(255,255,255,0.06)",
@@ -241,7 +316,7 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
                       style={{
                         fontFamily: FONTS.heading,
                         fontWeight: isFirst ? 600 : 500,
-                        fontSize: isFirst ? 30 : 24,
+                        fontSize: size,
                         lineHeight: 1.25,
                         letterSpacing: "-0.3px",
                         color: textColor,
@@ -339,9 +414,9 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
         </div>
 
         <div className="flex justify-center gap-1 py-2">
-          {slides.map((_, i) => (
+          {slides.map((s, i) => (
             <button
-              key={i}
+              key={s.id}
               type="button"
               onClick={() => setCurrent(i)}
               aria-label={`Ir al slide ${i + 1}`}
@@ -357,6 +432,43 @@ export function CarouselPreview({ rawOutput, brandId = "vida-emprendedora" }: Ca
             />
           ))}
         </div>
+
+        {editing && (
+          <div className="flex flex-wrap items-center justify-center gap-2 px-4 pb-3">
+            <button
+              type="button"
+              onClick={() => moveSlide(current, -1)}
+              disabled={current === 0}
+              className="text-[11px] uppercase tracking-wide px-3 py-1.5 rounded-md border border-border disabled:opacity-30"
+            >
+              ← Mover
+            </button>
+            <button
+              type="button"
+              onClick={() => moveSlide(current, 1)}
+              disabled={current === total - 1}
+              className="text-[11px] uppercase tracking-wide px-3 py-1.5 rounded-md border border-border disabled:opacity-30"
+            >
+              Mover →
+            </button>
+            <button
+              type="button"
+              onClick={() => addSlideAfter(current)}
+              className="text-[11px] uppercase tracking-wide px-3 py-1.5 rounded-md border border-border"
+            >
+              + Añadir slide
+            </button>
+            <button
+              type="button"
+              onClick={() => removeSlide(current)}
+              disabled={total <= MIN_SLIDES}
+              className="text-[11px] uppercase tracking-wide px-3 py-1.5 rounded-md border border-destructive/40 text-destructive disabled:opacity-30"
+              title={total <= MIN_SLIDES ? `Mínimo ${MIN_SLIDES} slides` : undefined}
+            >
+              Eliminar slide
+            </button>
+          </div>
+        )}
       </div>
 
       <div className="w-full rounded-xl border border-border bg-card p-4" style={{ maxWidth: SLIDE_W }}>
