@@ -32,27 +32,111 @@ export type Database = {
         }
         Relationships: []
       }
+      generaciones: {
+        Row: {
+          created_at: string
+          formato: string
+          id: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          formato: string
+          id?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          formato?: string
+          id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       perfiles: {
         Row: {
+          avatar_url: string | null
           created_at: string
           email: string
           id: string
+          marca_audiencia: string | null
+          marca_color: string
+          marca_color_oscuro: string
+          marca_cta: string | null
+          marca_evitar: string | null
+          marca_firma: string | null
+          marca_genero: string
+          marca_handle: string | null
+          marca_idioma: string
+          marca_negocio: string | null
+          marca_nombre: string | null
+          marca_persona: string
+          marca_tono: string
           nombre: string
           updated_at: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           email: string
           id: string
+          marca_audiencia?: string | null
+          marca_color?: string
+          marca_color_oscuro?: string
+          marca_cta?: string | null
+          marca_evitar?: string | null
+          marca_firma?: string | null
+          marca_genero?: string
+          marca_handle?: string | null
+          marca_idioma?: string
+          marca_negocio?: string | null
+          marca_nombre?: string | null
+          marca_persona?: string
+          marca_tono?: string
           nombre: string
           updated_at?: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           email?: string
           id?: string
+          marca_audiencia?: string | null
+          marca_color?: string
+          marca_color_oscuro?: string
+          marca_cta?: string | null
+          marca_evitar?: string | null
+          marca_firma?: string | null
+          marca_genero?: string
+          marca_handle?: string | null
+          marca_idioma?: string
+          marca_negocio?: string | null
+          marca_nombre?: string | null
+          marca_persona?: string
+          marca_tono?: string
           nombre?: string
           updated_at?: string
+        }
+        Relationships: []
+      }
+      trabajos: {
+        Row: {
+          contenido: Json
+          created_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          contenido?: Json
+          created_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          contenido?: Json
+          created_at?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }

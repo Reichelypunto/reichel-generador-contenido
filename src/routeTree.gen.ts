@@ -12,6 +12,7 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthCallbackRouteImport } from './routes/auth.callback'
+import { Route as AuthenticatedMiMarcaRouteImport } from './routes/_authenticated/mi-marca'
 import { Route as AuthenticatedGeneradorRouteImport } from './routes/_authenticated/generador'
 
 const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
@@ -28,6 +29,11 @@ const AuthCallbackRoute = AuthCallbackRouteImport.update({
   path: '/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedMiMarcaRoute = AuthenticatedMiMarcaRouteImport.update({
+  id: '/mi-marca',
+  path: '/mi-marca',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthenticatedGeneradorRoute = AuthenticatedGeneradorRouteImport.update({
   id: '/generador',
   path: '/generador',
@@ -37,11 +43,13 @@ const AuthenticatedGeneradorRoute = AuthenticatedGeneradorRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/generador': typeof AuthenticatedGeneradorRoute
+  '/mi-marca': typeof AuthenticatedMiMarcaRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/generador': typeof AuthenticatedGeneradorRoute
+  '/mi-marca': typeof AuthenticatedMiMarcaRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRoutesById {
@@ -49,18 +57,20 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/generador': typeof AuthenticatedGeneradorRoute
+  '/_authenticated/mi-marca': typeof AuthenticatedMiMarcaRoute
   '/auth/callback': typeof AuthCallbackRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/generador' | '/auth/callback'
+  fullPaths: '/' | '/generador' | '/mi-marca' | '/auth/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/generador' | '/auth/callback'
+  to: '/' | '/generador' | '/mi-marca' | '/auth/callback'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/_authenticated/generador'
+    | '/_authenticated/mi-marca'
     | '/auth/callback'
   fileRoutesById: FileRoutesById
 }
@@ -93,6 +103,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated/mi-marca': {
+      id: '/_authenticated/mi-marca'
+      path: '/mi-marca'
+      fullPath: '/mi-marca'
+      preLoaderRoute: typeof AuthenticatedMiMarcaRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/generador': {
       id: '/_authenticated/generador'
       path: '/generador'
@@ -105,10 +122,12 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedGeneradorRoute: typeof AuthenticatedGeneradorRoute
+  AuthenticatedMiMarcaRoute: typeof AuthenticatedMiMarcaRoute
 }
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedGeneradorRoute: AuthenticatedGeneradorRoute,
+  AuthenticatedMiMarcaRoute: AuthenticatedMiMarcaRoute,
 }
 
 const AuthenticatedRouteRouteWithChildren =
