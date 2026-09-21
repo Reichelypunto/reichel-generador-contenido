@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
 // Cargar skills como texto (bundleadas en server runtime)
 import carruselesSkill from "../../skills/carruseles-skill.md?raw";
@@ -48,62 +49,72 @@ const ALTER_EGO_LABEL: Record<string, string> = {
   "la-bruji": "La Bruji — intuitiva, espiritual, conecta con el instinto",
 };
 
+const MODEL = "google/gemini-2.5-pro";
+const LIMITE_DIARIO = 30;
+const MAX_TEMA = 4000;
+const MAX_PROMPT = 24000;
+
 // ---------------------------------------------------------------------------
-// Voz de marca.
-//
-// IMPORTANTE — corrección: este generador NO tiene una marca/escuela
-// llamada "Vida Emprendedora" con "alumnas". Eso no existe (confirmado por
-// la usuaria) — era un error que quedó de una versión anterior, mezclado
-// probablemente con contenido del OTRO repo (generador-contenido-alumnas,
-// ese sí para estudiantes). Aquí solo hay dos marcas reales bajo las que
-// Reichely publica contenido propio: Reichelypunto2.0 (personal) y
-// Keles & Reichel (K&R, marca conjunta). "rrss" (Vender en RRSS sin
-// Complicaciones / Maricarmen) es un tercer caso ya existente en el
-// artefacto original — se deja tal cual, no forma parte de esta corrección.
+// Marca propia de cada alumna (sustituye a las 3 marcas fijas anteriores).
+// Se lee SIEMPRE del perfil en la base de datos, nunca de lo que envíe el
+// navegador, para que nadie pueda escribir con la voz de otra.
 // ---------------------------------------------------------------------------
 
-function brandVoiceBlock(marca: string): string {
-  if (marca === "rrss") {
-    return `Eres la estratega de contenido digital de "Vender en RRSS sin Complicaciones", una academia digital para emprendedoras que quieren vender con estructura.
+type Perfil = {
+  marca_nombre: string | null;
+  marca_handle: string | null;
+  marca_negocio: string | null;
+  marca_audiencia: string | null;
+  marca_tono: string | null;
+  marca_genero: string | null;
+  marca_persona: string | null;
+  marca_idioma: string | null;
+  marca_cta: string | null;
+  marca_firma: string | null;
+  marca_evitar: string | null;
+};
 
-REGLAS ABSOLUTAS:
-- Español de España únicamente. Nunca latinoamericanismos.
-- Tono adulto, directo, sin fluff, sin corporate speak.
-- Autoridad demostrada, nunca declarada.
-- CTA siempre incluido. Es obligatorio, nunca opcional.
-- Posiciona sin enseñar. Habla del problema, no de la solución.
-- Abre bucles mentales. No los cierres.
-- Sin clichés de coaching: nada de "paso a paso", "transforma tu vida", "empoderarte", "potencial", "viaje".
-- Sin negritas, sin cursivas, sin emojis excesivos.
-- Sin párrafos largos. Sin motivación vacía.
-- Firma emails siempre: Hasta luego, Maricarmen 👋🏼`;
-  }
-  if (marca === "kr") {
-    return `Eres la estratega de contenido digital de Keles & Reichel, un programa de acompañamiento para emprendedoras. Voz siempre en plural (Keles & Reichel).
+function brandVoiceBlock(p: Perfil): string {
+  const nombre = (p.marca_nombre || "").trim() || "la marca de la usuaria";
+  const plural = p.marca_persona === "nosotras";
+  const latam = p.marca_idioma === "Latam";
+  const genero = p.marca_genero || "femenino";
 
-REGLAS ABSOLUTAS:
-- Español de España únicamente. Nunca latinoamericanismos.
-- Tono adulto, directo, sin fluff, sin corporate speak.
-- Autoridad demostrada, nunca declarada.
-- CTA siempre incluido. Es obligatorio, nunca opcional.
-- Posiciona sin enseñar. Habla del problema, no de la solución.
-- Abre bucles mentales. No los cierres.
-- Sin clichés de coaching: nada de "paso a paso", "transforma tu vida", "empoderarte", "potencial", "viaje".
-- Sin negritas, sin cursivas, sin emojis excesivos.
-- Sin párrafos largos. Sin motivación vacía.
-- Firma emails siempre: Keles & Reichel 💋
-- Enlace podcast siempre: Escúchalo aquí (hipervínculo)`;
-  }
-  // reichelypunto (default) — marca personal de Reichely. Usa el framework
-  // compartido de motores/hooks/estilos/validación (BRAND_GUIDELINES_SHARED.md);
-  // esa guía es metodología genérica de copywriting, no es exclusiva de
-  // ninguna escuela ni implica que exista una.
-  return brandGuidelines;
+  const gen =
+    genero === "femenino"
+      ? 'GÉNERO (obligatorio): la audiencia son mujeres. Usa SIEMPRE formas femeninas al dirigirte a la lectora ("lista", "convencida", "todas"). Nunca el masculino genérico.'
+      : genero === "masculino"
+        ? "GÉNERO (obligatorio): la audiencia son hombres. Usa formas masculinas al dirigirte al lector."
+        : 'GÉNERO: audiencia mixta. Usa formulaciones neutras cuando sea natural ("quien", "las personas que"), sin dobletes forzados ni "e" inclusiva.';
+
+  const limpio = latam
+    ? "IDIOMA LIMPIO: español neutro de Latinoamérica, sin regionalismos muy marcados. Prohibido inventar verbos a partir del inglés."
+    : "IDIOMA LIMPIO (obligatorio): español de España. Prohibido cualquier anglicismo o latinoamericanismo, y prohibido inventar verbos a partir del inglés (\"trackear\", \"stalkear\", \"chequear\"…).";
+
+  return [
+    `Marca: ${nombre}${p.marca_handle ? ` (${p.marca_handle})` : ""}${plural ? ' — voz en plural ("nosotras")' : " — voz en primera persona del singular"}.`,
+    `Idioma: ${latam ? "español neutro latinoamericano" : "español de España"}.`,
+    p.marca_negocio ? `A QUÉ SE DEDICA: ${p.marca_negocio}` : "",
+    p.marca_audiencia ? `AUDIENCIA: ${p.marca_audiencia}` : "",
+    `TONO: ${p.marca_tono || "directo, adulto y cercano"}`,
+    "REGLAS: tono adulto directo. CTA siempre. Posiciona sin enseñar. Sin clichés de coaching. Prohibidas negritas, cursivas y markdown inline salvo que el formato lo pida. Sin metadatos ni meta-comentarios.",
+    p.marca_cta ? `CTA HABITUAL: cuando el formato lo permita, cierra con este tipo de llamada a la acción: ${p.marca_cta}` : "",
+    p.marca_firma ? `FIRMA: ${p.marca_firma}` : "",
+    p.marca_evitar ? `PALABRAS, TEMAS O ENFOQUES A EVITAR (obligatorio): ${p.marca_evitar}` : "",
+    gen,
+    limpio,
+    "AUDIENCIA CONCRETA: escribes para UNA persona real de esa audiencia, con situaciones que reconocería literalmente como suyas.",
+    "GRAMÁTICA: cada frase debe ser completa y correcta en español. Nunca sacrifiques la corrección por sonar más corto.",
+    "",
+    "# METODOLOGÍA DE REFERENCIA",
+    brandGuidelines,
+  ]
+    .filter(Boolean)
+    .join("\n");
 }
 
 // ---------------------------------------------------------------------------
-// Email — no hay skill .md todavía; instrucciones inline (adaptadas de
-// content-generator.tsx) con soporte de alter ego.
+// Email — no hay skill .md todavía; instrucciones inline con alter ego.
 // ---------------------------------------------------------------------------
 
 function buildEmailSkillPrompt(alterEgo: string | undefined): string {
@@ -140,34 +151,97 @@ Luego genera 3 VARIACIONES DE ASUNTO para A/B testing:
 [Tipo de asunto] | [Asunto] | [Preencabezado]`;
 }
 
+// ---------------------------------------------------------------------------
+// Utilidades compartidas: perfil, límite diario y llamada a la IA.
+// ---------------------------------------------------------------------------
+
+const PERFIL_COLS =
+  "marca_nombre, marca_handle, marca_negocio, marca_audiencia, marca_tono, marca_genero, marca_persona, marca_idioma, marca_cta, marca_firma, marca_evitar";
+
+async function leerPerfil(supabase: any, userId: string): Promise<Perfil> {
+  const { data, error } = await supabase.from("perfiles").select(PERFIL_COLS).eq("id", userId).maybeSingle();
+  if (error) throw new Error("No se ha podido leer tu marca. Vuelve a intentarlo.");
+  return (data ?? {}) as Perfil;
+}
+
+async function comprobarLimite(supabase: any, userId: string) {
+  const desde = new Date();
+  desde.setUTCHours(0, 0, 0, 0);
+  const { count, error } = await supabase
+    .from("generaciones")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", userId)
+    .gte("created_at", desde.toISOString());
+  if (error) return; // si el contador falla, no bloqueamos la generación
+  if ((count ?? 0) >= LIMITE_DIARIO) {
+    throw new Error(
+      `Has llegado a tus ${LIMITE_DIARIO} generaciones de hoy. Vuelve mañana y tendrás otras ${LIMITE_DIARIO}.`,
+    );
+  }
+}
+
+async function registrarGeneracion(supabase: any, userId: string, formato: string) {
+  await supabase.from("generaciones").insert({ user_id: userId, formato });
+}
+
+async function llamarIA(systemPrompt: string, userPrompt: string): Promise<string> {
+  const apiKey = process.env.LOVABLE_API_KEY;
+  if (!apiKey) throw new Error("LOVABLE_API_KEY no configurada");
+
+  const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${apiKey}`,
+    },
+    body: JSON.stringify({
+      model: MODEL,
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+    }),
+  });
+
+  if (!response.ok) {
+    const errText = await response.text();
+    if (response.status === 429) throw new Error("Demasiadas peticiones. Espera un momento y vuelve a intentar.");
+    if (response.status === 402) throw new Error("Se han agotado los créditos de IA. Avisa a Reichely.");
+    throw new Error(`Error IA (${response.status}): ${errText.slice(0, 200)}`);
+  }
+
+  const json = await response.json();
+  return json?.choices?.[0]?.message?.content ?? "";
+}
+
+// ---------------------------------------------------------------------------
+// Formatos de texto (Reel, Post/Caption, Stories, Venta Sutil, Email).
+// Mismo flujo de siempre, con la marca de la alumna en vez de las 3 fijas.
+// ---------------------------------------------------------------------------
+
 const InputSchema = z.object({
   formato: z.enum(["carrusel", "reel", "post", "stories", "venta", "email"]),
   estilo: z.enum(["negativo", "info-secreta", "controversial"]),
   motor: z.enum(["aspiracion", "educacion", "impacto", "reflejo"]),
-  marca: z.enum(["reichelypunto", "rrss", "kr"]).default("reichelypunto"),
   alterEgo: z.enum(["la-virgo", "la-procrastinadora", "la-musa", "la-loca-del-cono", "la-bruji"]).optional(),
-  tema: z.string().min(3).max(4000),
+  tema: z.string().min(3).max(MAX_TEMA),
 });
 
 export const generarContenido = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => InputSchema.parse(data))
-  .handler(async ({ data }) => {
-    const apiKey = process.env.LOVABLE_API_KEY;
-    if (!apiKey) {
-      throw new Error("LOVABLE_API_KEY no configurada");
-    }
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as { supabase: any; userId: string };
 
-    const isReichelypunto = data.marca === "reichelypunto";
+    await comprobarLimite(supabase, userId);
+    const perfil = await leerPerfil(supabase, userId);
+
     const skill = data.formato === "email" ? buildEmailSkillPrompt(data.alterEgo) : SKILLS[data.formato];
-    const voz = brandVoiceBlock(data.marca);
+    const voz = brandVoiceBlock(perfil);
 
-    const systemPrompt = `${
-      isReichelypunto
-        ? "Eres una creadora de contenido experta escribiendo para Reichelypunto2.0 (@reichelypunto2.0), la marca personal de Reichely Portales en Instagram."
-        : "Eres una creadora de contenido experta trabajando para el equipo de Reichely Portales."
-    }
-
-Tu trabajo es generar contenido siguiendo AL PIE DE LA LETRA la skill correspondiente y la voz de marca que recibes abajo.
+    const systemPrompt = `Eres la estratega de contenido de ${
+      (perfil.marca_nombre || "").trim() || "la marca de la usuaria"
+    }. Generas contenido siguiendo AL PIE DE LA LETRA la skill correspondiente y la voz de marca que recibes abajo.
 
 # VOZ DE MARCA (aplica SIEMPRE)
 ${voz}
@@ -179,35 +253,50 @@ ${skill}
 - Estilo de ejecución: ${ESTILO_LABEL[data.estilo]}
 - Motor viral: ${MOTOR_LABEL[data.motor]}
 - Entrega el contenido FINAL listo para publicar, sin meta-comentarios ni explicaciones.
-- Respeta exactamente la estructura definida en la skill (número de slides, formato de guion, etc.).
-- Voz cálida, cercana, de mujer a mujer. Nada de corporativo ni gurú.`;
+- Respeta exactamente la estructura definida en la skill (número de slides, formato de guion, etc.).`;
 
     const userPrompt = `TEMA / INSIGHT DE ENTRADA:\n\n${data.tema}\n\nGenera el contenido completo ahora.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model: "google/gemini-2.5-pro",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
-      }),
-    });
-
-    if (!response.ok) {
-      const errText = await response.text();
-      if (response.status === 429) throw new Error("Demasiadas peticiones. Espera un momento y vuelve a intentar.");
-      if (response.status === 402) throw new Error("Se han agotado los créditos de IA. Avisa a Reichely.");
-      throw new Error(`Error IA (${response.status}): ${errText.slice(0, 200)}`);
-    }
-
-    const json = await response.json();
-    const contenido = json?.choices?.[0]?.message?.content ?? "";
+    const contenido = await llamarIA(systemPrompt, userPrompt);
+    await registrarGeneracion(supabase, userId, data.formato);
 
     return { contenido };
+  });
+
+// ---------------------------------------------------------------------------
+// Carrusel: el editor construye sus propios prompts (sysP / buildCarruselP)
+// y los envía tal cual. Aquí solo se comprueba el acceso, el límite y la
+// longitud, y se llama al mismo modelo.
+// ---------------------------------------------------------------------------
+
+const CarruselSchema = z.object({
+  system: z.string().min(10).max(MAX_PROMPT),
+  prompt: z.string().min(10).max(MAX_PROMPT),
+});
+
+export const generarCarrusel = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => CarruselSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context as { supabase: any; userId: string };
+
+    await comprobarLimite(supabase, userId);
+    const contenido = await llamarIA(data.system, data.prompt);
+    await registrarGeneracion(supabase, userId, "carrusel");
+
+    return { contenido };
+  });
+
+export const generacionesHoy = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context as { supabase: any; userId: string };
+    const desde = new Date();
+    desde.setUTCHours(0, 0, 0, 0);
+    const { count } = await supabase
+      .from("generaciones")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .gte("created_at", desde.toISOString());
+    return { usadas: count ?? 0, limite: LIMITE_DIARIO };
   });
